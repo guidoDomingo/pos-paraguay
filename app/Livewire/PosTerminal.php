@@ -38,8 +38,17 @@ class PosTerminal extends Component
     // Estado
     public $showCustomerModal = false;
     public $showPaymentModal = false;
+    public $showPrintModal = false;
+    public $lastSaleId = null;
+    public $lastDocumentType = null;
+    public $lastSaleNumber = null;
     public $searchResults = [];
     public $selectedCustomer = null;
+
+    protected $listeners = [
+        'updateCashReceived' => 'updateCashReceived',
+        'setCashAmount' => 'setCashAmount'
+    ];
 
     protected $rules = [
         'customer_name' => 'required_if:document_type,factura|min:3',
@@ -373,22 +382,31 @@ class PosTerminal extends Component
 
             session()->flash('success', 'Venta procesada exitosamente');
             
+            // Configurar datos para el modal de impresión
+            $this->lastSaleId = $sale->id;
+            $this->lastDocumentType = $this->document_type;
+            $this->lastSaleNumber = $sale->sale_number;
+            $this->showPrintModal = true;
+            
             // Guardar ID de venta para redirección PDF
             session()->put('sale_id_for_pdf', $sale->id);
             session()->put('document_type_for_pdf', $this->document_type);
             
-            // Resetear formulario
+            // Guardar el tipo de documento antes de resetear
+            $currentDocumentType = $this->document_type;
+            
+            // Emitir evento para JavaScript para mostrar modal de impresión
+            $this->dispatch('sale-completed', 
+                saleId: $sale->id,
+                documentType: $currentDocumentType,
+                saleNumber: $sale->sale_number
+            );
+            
+            // Resetear formulario después de emitir el evento
             $this->reset(['cart', 'customer_name', 'customer_ruc', 'customer_address', 'notes', 'cash_received', 'document_type']);
             $this->document_type = 'ticket'; // Resetear a ticket por defecto
             $this->calculateTotals();
             $this->closePaymentModal();
-
-            // Emitir evento para JavaScript para mostrar modal de impresión
-            $this->dispatch('sale-completed', 
-                saleId: $sale->id,
-                documentType: $this->document_type,
-                saleNumber: $sale->sale_number
-            );
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -407,6 +425,26 @@ class PosTerminal extends Component
         $number = $lastSale ? (int) substr($lastSale->sale_number, 1) + 1 : 1;
 
         return $prefix . str_pad($number, 8, '0', STR_PAD_LEFT);
+    }
+
+    public function updateCashReceived($value)
+    {
+        $this->cash_received = floatval($value);
+        $this->calculateTotals();
+    }
+
+    public function setCashAmount($amount)
+    {
+        $this->cash_received = floatval($amount);
+        $this->calculateTotals();
+    }
+
+    public function closePrintModal()
+    {
+        $this->showPrintModal = false;
+        $this->lastSaleId = null;
+        $this->lastDocumentType = null;
+        $this->lastSaleNumber = null;
     }
 
     public function render()

@@ -5,6 +5,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoiceSettingController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PrinterController;
+use App\Http\Controllers\DirectPrintController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
@@ -69,6 +70,68 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pdf/ticket/{sale}', [PdfController::class, 'generateTicket'])->name('pdf.ticket');
     Route::get('/pdf/preview/invoice/{sale}', [PdfController::class, 'previewInvoice'])->name('pdf.preview.invoice');
     Route::get('/pdf/preview/ticket/{sale}', [PdfController::class, 'previewTicket'])->name('pdf.preview.ticket');
+    
+    // Direct Printing - Ruta alternativa
+    Route::get('/direct-print/{sale}', [DirectPrintController::class, 'printTicket'])->name('direct.print');
+    Route::get('/direct-print-raw/{sale}', [DirectPrintController::class, 'printTicketRaw'])->name('direct.print.raw');
+    Route::get('/print/ticket/{sale}', [DirectPrintController::class, 'printTicket'])->name('print.ticket.direct');
+    Route::get('/print/ticket-escpos/{sale}', [DirectPrintController::class, 'printTicketESCPOS'])->name('print.ticket.escpos');
+    Route::get('/print/debug/{sale}', function($sale) {
+        try {
+            \Log::info("Debug route called for sale: {$sale}");
+            
+            // Test 1: Basic sale retrieval
+            $saleData = \App\Models\Sale::find($sale);
+            if (!$saleData) {
+                return response()->json(['error' => 'Sale not found', 'sale_id' => $sale], 404);
+            }
+            
+            // Test 2: Load with relations
+            $saleWithRelations = \App\Models\Sale::with(['saleItems.product', 'customer', 'user'])->find($sale);
+            
+            // Test 3: InvoiceSettings
+            $settings = \App\Models\InvoiceSetting::getSettings();
+            
+            return response()->json([
+                'status' => 'success',
+                'sale_id' => $sale,
+                'sale_number' => $saleData->sale_number,
+                'has_items' => $saleWithRelations->saleItems->count(),
+                'has_user' => !is_null($saleWithRelations->user),
+                'user_name' => $saleWithRelations->user->name ?? 'NULL',
+                'settings_company' => $settings->company_name ?? 'NULL',
+                'controller_exists' => class_exists('\App\Http\Controllers\DirectPrintController'),
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error("Debug route error: " . $e->getMessage());
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => explode("\n", $e->getTraceAsString())
+            ], 500);
+        }
+    });
+    Route::get('/print/simple-test/{sale}', function($sale) {
+        try {
+            $saleData = \App\Models\Sale::find($sale);
+            if (!$saleData) {
+                return response()->json(['error' => 'Sale not found'], 404);
+            }
+            return response("TEST TICKET\nSale ID: {$sale}\nSale Number: {$saleData->sale_number}\nTotal: {$saleData->total_amount}")
+                ->header('Content-Type', 'text/plain; charset=utf-8');
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    });
+    Route::get('/print/test', function() {
+        return response()->json([
+            'message' => 'DirectPrintController is accessible',
+            'timestamp' => now(),
+            'latest_sale' => \App\Models\Sale::orderBy('id', 'desc')->first()?->id ?? 'No sales found'
+        ]);
+    });
     
     // Invoice Settings
     Route::get('/settings/invoice', [InvoiceSettingController::class, 'index'])->name('settings.invoice');

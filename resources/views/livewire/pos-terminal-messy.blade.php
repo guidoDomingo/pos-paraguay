@@ -332,37 +332,33 @@
             console.log('DOM loaded, setting up Livewire listeners');
         });
         
-        document.addEventListener('livewire:initialized', function() {
+        document.addEventListener('livewire:initialized', () => {
             console.log('Livewire initialized, setting up sale-completed listener');
-            Livewire.on('sale-completed', function(data) {
+            Livewire.on('sale-completed', (data) => {
                 console.log('sale-completed event received:', data);
-                var saleId = data.saleId;
-                var documentType = data.documentType; 
-                var saleNumber = data.saleNumber;
+                const { saleId, documentType, saleNumber } = data;
                 showPrintModal(saleId, documentType, saleNumber);
             });
         });
 
         // También intentar con el evento directo de Livewire
         if (typeof Livewire !== 'undefined') {
-            Livewire.on('sale-completed', function(data) {
+            Livewire.on('sale-completed', (data) => {
                 console.log('sale-completed event received (direct):', data);
-                var saleId = data.saleId;
-                var documentType = data.documentType;
-                var saleNumber = data.saleNumber;
+                const { saleId, documentType, saleNumber } = data;
                 showPrintModal(saleId, documentType, saleNumber);
             });
         }
 
         // Función para mostrar modal de impresión
         function showPrintModal(saleId, documentType, saleNumber) {
-            console.log('showPrintModal called with:', { saleId: saleId, documentType: documentType, saleNumber: saleNumber });
-            var modal = document.getElementById('printModal');
-            var modalTitle = document.getElementById('printModalTitle');
-            var modalBody = document.getElementById('printModalBody');
-            var printBtn = document.getElementById('printConfirmBtn');
-            var directPrintBtn = document.getElementById('directPrintBtn');
-            var previewBtn = document.getElementById('previewBtn');
+            console.log('showPrintModal called with:', { saleId, documentType, saleNumber });
+            const modal = document.getElementById('printModal');
+            const modalTitle = document.getElementById('printModalTitle');
+            const modalBody = document.getElementById('printModalBody');
+            const printBtn = document.getElementById('printConfirmBtn');
+            const directPrintBtn = document.getElementById('directPrintBtn');
+            const previewBtn = document.getElementById('previewBtn');
             
             if (!modal) {
                 console.error('Modal printModal not found');
@@ -370,34 +366,36 @@
             }
             
             modalTitle.textContent = documentType === 'factura' ? 'Factura Generada' : 'Ticket Generado';
-            modalBody.innerHTML = '<div class="text-center">' +
-                '<i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i>' +
-                '<h5>¡Venta procesada exitosamente!</h5>' +
-                '<p class="text-muted">Número: ' + saleNumber + '</p>' +
-                '<p>¿Cómo deseas imprimir el ' + documentType + '?</p>' +
-                '</div>';
+            modalBody.innerHTML = `
+                <div class="text-center">
+                    <i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i>
+                    <h5>¡Venta procesada exitosamente!</h5>
+                    <p class="text-muted">Número: ${saleNumber}</p>
+                    <p>¿Cómo deseas imprimir el ${documentType}?</p>
+                </div>
+            `;
             
             // Configurar botón de descarga PDF
-            printBtn.onclick = function() {
+            printBtn.onclick = () => {
                 if (documentType === 'factura') {
-                    window.open('/pdf/invoice/' + saleId, '_blank');
+                    window.open(`/pdf/invoice/${saleId}`, '_blank');
                 } else {
-                    window.open('/pdf/ticket/' + saleId, '_blank');
+                    window.open(`/pdf/ticket/${saleId}`, '_blank');
                 }
                 bootstrap.Modal.getInstance(modal).hide();
             };
 
             // Configurar botón de impresión directa
-            directPrintBtn.onclick = function() {
+            directPrintBtn.onclick = () => {
                 directPrint(saleId, documentType);
                 bootstrap.Modal.getInstance(modal).hide();
             };
             
-            previewBtn.onclick = function() {
+            previewBtn.onclick = () => {
                 if (documentType === 'factura') {
-                    window.open('/pdf/preview/invoice/' + saleId, '_blank');
+                    window.open(`/pdf/preview/invoice/${saleId}`, '_blank');
                 } else {
-                    window.open('/pdf/preview/ticket/' + saleId, '_blank');
+                    window.open(`/pdf/preview/ticket/${saleId}`, '_blank');
                 }
             };
             
@@ -407,24 +405,24 @@
         // Función para impresión directa
         function directPrint(saleId, documentType) {
             // Mostrar indicador de carga
-            var loadingToast = showToast('Enviando a impresora...', 'info');
+            const loadingToast = showToast('Enviando a impresora...', 'info');
             
-            console.log('Direct print called with:', { saleId: saleId, documentType: documentType });
+            console.log('Direct print called with:', { saleId, documentType });
             
             // Solo soportamos impresión directa para tickets por ahora
             if (documentType === 'ticket') {
                 // Usar fetch para obtener el contenido del ticket
-                fetch('/direct-print/' + saleId)
-                    .then(function(response) {
+                fetch(`/direct-print/${saleId}`)
+                    .then(response => {
                         console.log('Print response status:', response.status);
                         if (!response.ok) {
-                            return response.json().then(function(data) {
-                                throw new Error(data.error || 'HTTP error! status: ' + response.status);
+                            return response.json().then(data => {
+                                throw new Error(data.error || `HTTP error! status: ${response.status}`);
                             });
                         }
                         return response.text();
                     })
-                    .then(function(ticketContent) {
+                    .then(ticketContent => {
                         // Intentar impresión directa moderna
                         if (navigator.printing || window.print) {
                             return printDirectToDevice(ticketContent, saleId);
@@ -432,12 +430,12 @@
                             throw new Error('Impresión directa no disponible en este navegador');
                         }
                     })
-                    .then(function() {
+                    .then(() => {
                         showToast('Ticket enviado a impresora correctamente', 'success');
                     })
-                    .catch(function(error) {
+                    .catch(error => {
                         console.error('Print error:', error);
-                        showToast('Error al imprimir: ' + error.message, 'error');
+                        showToast(`Error al imprimir: ${error.message}`, 'error');
                         
                         // Fallback: abrir ventana de impresión tradicional
                         console.log('Usando fallback de impresión tradicional...');
@@ -445,21 +443,21 @@
                     });
             } else {
                 // Para facturas, usar PDF por ahora
-                window.open('/pdf/invoice/' + saleId, '_blank');
+                window.open(`/pdf/invoice/${saleId}`, '_blank');
                 showToast('Factura descargada', 'success');
             }
         }
 
         // Función para impresión directa moderna
-        function printDirectToDevice(content, saleId) {
+        async function printDirectToDevice(content, saleId) {
             try {
                 // Método 1: Usar Web Print API si está disponible
                 if ('print' in window && 'navigator' in window && navigator.userAgent.includes('Chrome')) {
-                    return printWithSilentMode(content, saleId);
+                    return await printWithSilentMode(content, saleId);
                 }
                 
                 // Método 2: Crear iframe oculto para impresión automática
-                return printWithHiddenFrame(content, saleId);
+                return await printWithHiddenFrame(content, saleId);
                 
             } catch (error) {
                 console.error('Error in direct printing:', error);
@@ -468,9 +466,9 @@
         }
 
         // Impresión silenciosa (Chrome/Edge)
-        function printWithSilentMode(content, saleId) {
-            return new Promise(function(resolve, reject) {
-                var iframe = document.createElement('iframe');
+        async function printWithSilentMode(content, saleId) {
+            return new Promise((resolve, reject) => {
+                const iframe = document.createElement('iframe');
                 iframe.style.position = 'absolute';
                 iframe.style.left = '-9999px';
                 iframe.style.top = '-9999px';
@@ -480,28 +478,49 @@
                 
                 iframe.onload = function() {
                     try {
-                        var doc = iframe.contentDocument || iframe.contentWindow.document;
+                        const doc = iframe.contentDocument || iframe.contentWindow.document;
                         doc.open();
-                        doc.write('<!DOCTYPE html><html><head>' +
-                            '<title>Ticket ' + saleId + '</title>' +
-                            '<style>' +
-                                '@page { size: 80mm auto; margin: 0; }' +
-                                'body { font-family: "Courier New", monospace; font-size: 11px; line-height: 1.1; margin: 0; padding: 2mm;' +
-                                        'white-space: pre-wrap; width: 76mm; color: black; }' +
-                                '@media print { body { margin: 0; padding: 1mm; -webkit-print-color-adjust: exact; } }' +
-                            '</style>' +
-                            '</head>' +
-                            '<body>' + escapeHtml(content) + '</body>' +
-                            '</html>');
+                        doc.write(`
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>Ticket ${saleId}</title>
+                                <style>
+                                    @page { 
+                                        size: 80mm auto; 
+                                        margin: 0; 
+                                    }
+                                    body { 
+                                        font-family: 'Courier New', monospace; 
+                                        font-size: 11px; 
+                                        line-height: 1.1;
+                                        margin: 0; 
+                                        padding: 2mm;
+                                        white-space: pre-wrap;
+                                        width: 76mm;
+                                        color: black;
+                                    }
+                                    @media print {
+                                        body { 
+                                            margin: 0; 
+                                            padding: 1mm; 
+                                            -webkit-print-color-adjust: exact;
+                                        }
+                                    }
+                                </style>
+                            </head>
+                            <body>${escapeHtml(content)}</body>
+                            </html>
+                        `);
                         doc.close();
                         
                         // Esperar un momento y luego imprimir
-                        setTimeout(function() {
+                        setTimeout(() => {
                             iframe.contentWindow.focus();
                             iframe.contentWindow.print();
                             
                             // Limpiar después de imprimir
-                            setTimeout(function() {
+                            setTimeout(() => {
                                 document.body.removeChild(iframe);
                                 resolve();
                             }, 1000);
@@ -523,31 +542,44 @@
         }
 
         // Impresión con frame oculto
-        function printWithHiddenFrame(content, saleId) {
-            return new Promise(function(resolve, reject) {
-                var printWindow = window.open('', '_blank', 'width=300,height=300,left=9999,top=9999');
+        async function printWithHiddenFrame(content, saleId) {
+            return new Promise((resolve, reject) => {
+                const printWindow = window.open('', '_blank', 'width=300,height=300,left=9999,top=9999');
                 
                 if (!printWindow) {
                     reject(new Error('No se pudo abrir ventana de impresión (bloqueador de pop-ups?)'));
                     return;
                 }
                 
-                printWindow.document.write(
-                    '<!DOCTYPE html><html><head>' +
-                    '<title>Ticket ' + saleId + '</title>' +
-                    '<style>' +
-                        '@page { size: 80mm auto; margin: 0; }' +
-                        'body { font-family: "Courier New", monospace; font-size: 11px; line-height: 1.1; margin: 0; padding: 2mm; white-space: pre-wrap; width: 76mm; }' +
-                    '</style>' +
-                    '</head>' +
-                    '<body>' + escapeHtml(content) + '</body>' +
-                    '</html>'
-                );
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Ticket ${saleId}</title>
+                        <style>
+                            @page { 
+                                size: 80mm auto; 
+                                margin: 0; 
+                            }
+                            body { 
+                                font-family: 'Courier New', monospace; 
+                                font-size: 11px; 
+                                line-height: 1.1;
+                                margin: 0; 
+                                padding: 2mm;
+                                white-space: pre-wrap;
+                                width: 76mm;
+                            }
+                        </style>
+                    </head>
+                    <body>${escapeHtml(content)}</body>
+                    </html>
+                `);
                 
                 printWindow.document.close();
                 
                 printWindow.onload = function() {
-                    setTimeout(function() {
+                    setTimeout(() => {
                         printWindow.focus();
                         printWindow.print();
                         
@@ -558,7 +590,7 @@
                         };
                         
                         // Fallback: cerrar después de 5 segundos
-                        setTimeout(function() {
+                        setTimeout(() => {
                             if (!printWindow.closed) {
                                 printWindow.close();
                             }
@@ -571,35 +603,48 @@
 
         // Fallback: ventana de impresión tradicional
         function openTraditionalPrintWindow(saleId) {
-            fetch('/direct-print/' + saleId)
-                .then(function(response) { return response.text(); })
-                .then(function(content) {
-                    var printWindow = window.open('', '_blank', 'width=400,height=600');
-                    printWindow.document.write(
-                        '<!DOCTYPE html><html><head>' +
-                        '<title>Ticket ' + saleId + '</title>' +
-                        '<style>' +
-                            'body { font-family: "Courier New", monospace; font-size: 12px; white-space: pre-wrap; margin: 10px; }' +
-                        '</style>' +
-                        '</head>' +
-                        '<body>' + escapeHtml(content) + '<br><br>' +
-                        '<button onclick="window.print()">Imprimir</button>' +
-                        '<button onclick="window.close()">Cerrar</button>' +
-                        '</body>' +
-                        '</html>'
-                    );
+            fetch(`/direct-print/${saleId}`)
+                .then(response => response.text())
+                .then(content => {
+                    const printWindow = window.open('', '_blank', 'width=400,height=600');
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Ticket ${saleId}</title>
+                            <style>
+                                body { 
+                                    font-family: 'Courier New', monospace; 
+                                    font-size: 12px; 
+                                    white-space: pre-wrap;
+                                    margin: 10px;
+                                }
+                            </style>
+                        </head>
+                        <body>${escapeHtml(content)}<br><br>
+                        <button onclick="window.print()">Imprimir</button>
+                        <button onclick="window.close()">Cerrar</button>
+                        </body>
+                        </html>
+                    `);
                     printWindow.document.close();
                     showToast('Ventana de impresión abierta', 'info');
-                })
-                .catch(function(error) {
-                    console.error('Print error:', error);
-                    showToast('Error al imprimir: ' + error.message, 'error');
                 });
+        }
+                    .catch(error => {
+                        console.error('Print error:', error);
+                        showToast(`Error al imprimir: ${error.message}`, 'error');
+                    });
+            } else {
+                // Para facturas, usar PDF por ahora
+                window.open(`/pdf/invoice/${saleId}`, '_blank');
+                showToast('Factura descargada', 'success');
+            }
         }
 
         // Función auxiliar para escapar HTML
         function escapeHtml(text) {
-            var map = {
+            const map = {
                 '&': '&amp;',
                 '<': '&lt;',
                 '>': '&gt;',
@@ -610,20 +655,21 @@
         }
 
         // Función para mostrar toast notifications
-        function showToast(message, type) {
-            if (!type) type = 'info';
-            var toast = document.createElement('div');
-            var bgClass = type === 'success' ? 'success' : type === 'error' ? 'danger' : 'primary';
-            toast.className = 'toast align-items-center text-white bg-' + bgClass + ' border-0';
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'primary'} border-0`;
             toast.setAttribute('role', 'alert');
-            toast.innerHTML = 
-                '<div class="d-flex">' +
-                    '<div class="toast-body">' + message + '</div>' +
-                    '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>' +
-                '</div>';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
             
             // Crear contenedor de toasts si no existe
-            var toastContainer = document.getElementById('toast-container');
+            let toastContainer = document.getElementById('toast-container');
             if (!toastContainer) {
                 toastContainer = document.createElement('div');
                 toastContainer.id = 'toast-container';
@@ -634,11 +680,11 @@
             
             toastContainer.appendChild(toast);
             
-            var bsToast = new bootstrap.Toast(toast);
+            const bsToast = new bootstrap.Toast(toast);
             bsToast.show();
             
             // Remover después de que se oculte
-            toast.addEventListener('hidden.bs.toast', function() {
+            toast.addEventListener('hidden.bs.toast', () => {
                 toast.remove();
             });
             
@@ -667,7 +713,7 @@
     <script>
         // Funciones globales para los botones de efectivo
         function setCashAmount(amount) {
-            var input = document.getElementById('cash-input');
+            const input = document.getElementById('cash-input');
             if (input) {
                 input.value = amount;
                 input.focus();
@@ -685,62 +731,45 @@
 
         // Funciones para el modal de impresión
         window.openPreview = function(saleId, documentType) {
-            var url = documentType === 'factura' ? '/pdf/preview/invoice/' + saleId : '/pdf/preview/ticket/' + saleId;
+            const url = documentType === 'factura' ? '/pdf/preview/invoice/' + saleId : '/pdf/preview/ticket/' + saleId;
             window.open(url, '_blank');
         };
 
         window.directPrint = function(saleId, documentType) {
             if (documentType === 'ticket') {
                 fetch('/direct-print/' + saleId)
-                    .then(function(response) {
+                    .then(response => {
                         if (!response.ok) throw new Error('Error en impresión');
                         return response.text();
                     })
-                    .then(function(content) {
+                    .then(content => {
                         // Crear iframe oculto para impresión
-                        var printFrame = document.createElement('iframe');
+                        const printFrame = document.createElement('iframe');
                         printFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
                         document.body.appendChild(printFrame);
                         
-                        var doc = printFrame.contentWindow.document;
+                        const doc = printFrame.contentWindow.document;
                         doc.open();
-                        var htmlContent = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>body{font-family:monospace;font-size:12px;margin:0;padding:10px;width:80mm;}@media print{body{margin:0;padding:0;}@page{size:80mm auto;margin:0;}}</style></head><body>' + content + '</body></html>';
-                        doc.write(htmlContent);
+                        doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>body{font-family:monospace;font-size:12px;margin:0;padding:10px;width:80mm;}@media print{body{margin:0;padding:0;}@page{size:80mm auto;margin:0;}}</style></head><body>' + content + '<script>window.onload=function(){window.print();setTimeout(function(){parent.document.body.removeChild(parent.document.querySelector("iframe"));},1000);};</script></body></html>');
                         doc.close();
                         
-                        setTimeout(function() {
-                            printFrame.contentWindow.print();
-                            setTimeout(function() {
-                                document.body.removeChild(printFrame);
-                                if (window.closePrintModal) window.closePrintModal();
-                            }, 1000);
-                        }, 500);
+                        setTimeout(window.closePrintModal, 2000);
                     })
-                    .catch(function(error) {
-                        alert('Error: ' + error.message);
-                    });
+                    .catch(error => alert('Error: ' + error.message));
             } else {
-                var w = window.open('/pdf/invoice/' + saleId, '_blank');
-                setTimeout(function() {
-                    w.print();
-                    if (window.closePrintModal) window.closePrintModal();
-                }, 1000);
+                const w = window.open('/pdf/invoice/' + saleId, '_blank');
+                setTimeout(() => { w.print(); window.closePrintModal(); }, 1000);
             }
         };
 
         window.downloadPDF = function(saleId, documentType) {
-            var url = '';
-            if (documentType === 'factura') {
-                url = '/pdf/invoice/' + saleId;
-            } else {
-                url = '/pdf/ticket/' + saleId;
-            }
+            const url = documentType === 'factura' ? '/pdf/invoice/' + saleId : '/pdf/ticket/' + saleId;
             window.open(url, '_blank');
         };
         
         // Función auxiliar para cerrar modal
         window.closePrintModal = function() {
-            var closeBtn = document.querySelector('[wire\\:click="closePrintModal"]');
+            const closeBtn = document.querySelector('[wire\\:click="closePrintModal"]');
             if (closeBtn) closeBtn.click();
         };
     </script>
