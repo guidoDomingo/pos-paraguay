@@ -104,11 +104,25 @@ class DirectPrintController extends Controller
             // Generar comandos ESC/POS para impresión directa
             $rawCommands = $this->generateTicketESCPOS($sale);
             
-            return response($rawCommands)
-                ->header('Content-Type', 'application/octet-stream')
-                ->header('Content-Disposition', 'attachment; filename="ticket-raw-' . $sale->sale_number . '.prn"')
-                ->header('Cache-Control', 'no-cache, must-revalidate')
-                ->header('X-Print-Direct', 'raw');
+            // Intentar enviar a la impresora directamente
+            $printResult = $this->sendToPrinter($rawCommands, $sale->sale_number);
+            
+            if ($printResult['success']) {
+                Log::info('Ticket sent to printer successfully');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Ticket enviado a impresora correctamente',
+                    'saleId' => $saleId,
+                    'printerInfo' => $printResult['printer'] ?? null
+                ]);
+            } else {
+                Log::warning('Failed to send to printer, returning raw data');
+                return response()->json([
+                    'success' => false,
+                    'error' => $printResult['error'],
+                    'fallback' => 'browser_print'
+                ]);
+            }
                 
         } catch (\Exception $e) {
             Log::error('Error en DirectPrintController::printTicketRaw', [
@@ -118,6 +132,253 @@ class DirectPrintController extends Controller
             ]);
             
             return response()->json(['error' => 'Error al generar ticket raw: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Envía datos directamente a la impresora del sistema
+     */
+    private function sendToPrinter($rawData, $saleNumber)
+    {
+        try {
+            // Para Windows, usar el comando PRINT o copy con puerto paralelo/USB
+            if (PHP_OS_FAMILY === 'Windows') {
+                return $this->sendToWindowsPrinter($rawData, $saleNumber);
+            }
+            
+            // Para Linux/Unix, usar lp o lpr
+            return $this->sendToUnixPrinter($rawData, $saleNumber);
+            
+        } catch (\Exception $e) {
+            Log::error('Error sending to printer: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Envía a impresora en Windows
+     */
+    private function sendToWindowsPrinter($rawData, $saleNumber)
+    {
+        try {
+            // Crear archivo temporal
+            $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ticket_' . $saleNumber . '_' . time() . '.prn';
+            file_put_contents($tempFile, $rawData);
+            
+            // Obtener lista de impresoras instaladas
+            $installedPrinters = $this->getWindowsPrinters();
+            Log::info('Impresoras encontradas en Windows:', $installedPrinters);
+            
+            // Lista priorizada de nombres de impresoras térmicas/POS
+            $thermalPrinters = [
+                'TM-U220',          // Epson TM-U220 (detectado en sistema)
+                'Receipt',          // Impresoras de recibo
+                'POS-80',           // Nombre común genérico
+                'POS-58',           // 58mm
+                'POS',              // Nombre genérico
+                'Thermal',          // Impresoras térmicas
+                'TM-T88',           // Epson TM-T88 series
+                'TM-T20',           // Epson TM-T20
+                'RP-80',            // Citizen RP-80
+                'CT-S310',          // Citizen CT-S310
+                'TSP100',           // Star TSP100
+                'TSP650',           // Star TSP650
+                'XP-80C',           // Xprinter XP-80C
+                'XP-58',            // Xprinter 58mm
+                '80mm',             // Cualquier con 80mm
+                '58mm',             // Cualquier con 58mm
+                'BIXOLON',          // Marca Bixolon
+                'CUSTOM',           // Marca Custom
+                'EPSON',            // Cualquier Epson
+                'STAR'              // Cualquier Star
+            ];
+            
+            // Buscar coincidencias entre impresoras instaladas y térmicas
+            foreach ($installedPrinters as $installedPrinter) {
+                foreach ($thermalPrinters as $thermalName) {
+                    if (stripos($installedPrinter, $thermalName) !== false) {
+                        $result = $this->printToSpecificPrinter($tempFile, $installedPrinter);
+                        if ($result['success']) {
+                            return $result;
+                        }
+                    }
+                }
+            }
+            
+            // Si no encontramos térmica específica, intentar con la primera impresora disponible
+            if (!empty($installedPrinters)) {
+                foreach ($installedPrinters as $printer) {
+                    $result = $this->printToSpecificPrinter($tempFile, $printer);
+                    if ($result['success']) {
+                        return $result;
+                    }
+                }
+            }
+            
+            // Último intento con impresora predeterminada del sistema
+            $command = "print \"$tempFile\"";
+            exec($command, $output, $returnCode);
+            
+            unlink($tempFile);
+            
+            if ($returnCode === 0) {
+                return [
+                    'success' => true,
+                    'printer' => 'Sistema predeterminado',
+                    'method' => 'windows_print_default'
+                ];
+            }
+            
+            return [
+                'success' => false,
+                'error' => 'No se pudo encontrar ninguna impresora funcional'
+            ];
+            
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => 'Error en impresión Windows: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Obtiene lista de impresoras instaladas en Windows
+     */
+    private function getWindowsPrinters()
+    {
+        try {
+            // Usar PowerShell para obtener impresoras
+            $command = 'powershell "Get-WmiObject -Query \\"SELECT Name FROM Win32_Printer\\" | Select-Object -ExpandProperty Name"';
+            exec($command, $output, $returnCode);
+            
+            if ($returnCode === 0 && !empty($output)) {
+                return array_filter($output, function($printer) {
+                    return !empty(trim($printer));
+                });
+            }
+            
+            // Fallback: usar wmic si PowerShell falla
+            $command = 'wmic printer get name /format:csv | findstr /v "Node"';
+            exec($command, $output2, $returnCode2);
+            
+            if ($returnCode2 === 0) {
+                $printers = [];
+                foreach ($output2 as $line) {
+                    if (strpos($line, ',') !== false) {
+                        $parts = explode(',', $line);
+                        if (isset($parts[1]) && !empty(trim($parts[1]))) {
+                            $printers[] = trim($parts[1]);
+                        }
+                    }
+                }
+                return $printers;
+            }
+            
+            return [];
+            
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo impresoras Windows: ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Imprime a una impresora específica
+     */
+    private function printToSpecificPrinter($tempFile, $printerName)
+    {
+        try {
+            // Método 1: copy con UNC path
+            $command = "copy /B \"$tempFile\" \"\\\\localhost\\$printerName\" > NUL 2>&1";
+            exec($command, $output, $returnCode);
+            
+            if ($returnCode === 0) {
+                unlink($tempFile);
+                return [
+                    'success' => true,
+                    'printer' => $printerName,
+                    'method' => 'windows_copy_unc'
+                ];
+            }
+            
+            // Método 2: PowerShell Out-Printer
+            $escapedPrinter = str_replace('"', '`"', $printerName);
+            $command = "powershell \"Get-Content '$tempFile' | Out-Printer -Name '$escapedPrinter'\"";
+            exec($command, $output2, $returnCode2);
+            
+            if ($returnCode2 === 0) {
+                unlink($tempFile);
+                return [
+                    'success' => true,
+                    'printer' => $printerName,
+                    'method' => 'powershell_out_printer'
+                ];
+            }
+            
+            return [
+                'success' => false,
+                'error' => "No se pudo imprimir en $printerName (códigos: $returnCode, $returnCode2)"
+            ];
+            
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => "Error imprimiendo en $printerName: " . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Envía a impresora en sistemas Unix/Linux
+     */
+    private function sendToUnixPrinter($rawData, $saleNumber)
+    {
+        try {
+            // Crear archivo temporal
+            $tempFile = '/tmp/ticket_' . $saleNumber . '_' . time() . '.prn';
+            file_put_contents($tempFile, $rawData);
+            
+            // Intentar con lp (cups)
+            $command = "lp -d POS-80 \"$tempFile\" 2>&1";
+            exec($command, $output, $returnCode);
+            
+            if ($returnCode === 0) {
+                unlink($tempFile);
+                return [
+                    'success' => true,
+                    'printer' => 'POS-80',
+                    'method' => 'cups_lp'
+                ];
+            }
+            
+            // Intentar con impresora predeterminada
+            $command = "lp \"$tempFile\" 2>&1";
+            exec($command, $output, $returnCode);
+            
+            unlink($tempFile);
+            
+            if ($returnCode === 0) {
+                return [
+                    'success' => true,
+                    'printer' => 'default',
+                    'method' => 'cups_default'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => 'No se pudo imprimir con CUPS'
+                ];
+            }
+            
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => 'Error en impresión Unix: ' . $e->getMessage()
+            ];
         }
     }
     

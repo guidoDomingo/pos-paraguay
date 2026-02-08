@@ -420,41 +420,214 @@
             
             // Solo soportamos impresión directa para tickets por ahora
             if (documentType === 'ticket') {
-                // Usar fetch para obtener el contenido del ticket
-                fetch('/direct-print/' + saleId)
-                    .then(function(response) {
-                        console.log('Print response status:', response.status);
-                        if (!response.ok) {
-                            return response.json().then(function(data) {
-                                throw new Error(data.error || 'HTTP error! status: ' + response.status);
-                            });
-                        }
-                        return response.text();
-                    })
-                    .then(function(ticketContent) {
-                        // Intentar impresión directa moderna
-                        if (navigator.printing || window.print) {
-                            return printDirectToDevice(ticketContent, saleId);
-                        } else {
-                            throw new Error('Impresión directa no disponible en este navegador');
-                        }
-                    })
-                    .then(function() {
+                // Primero intentar el método de servidor directo
+                fetch('/direct-print-raw/' + saleId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(function(response) {
+                    console.log('Print response status:', response.status);
+                    if (!response.ok) {
+                        return response.json().then(function(data) {
+                            throw new Error(data.error || 'Error HTTP: ' + response.status);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(function(result) {
+                    if (result.success) {
                         showToast('Ticket enviado a impresora correctamente', 'success');
-                    })
-                    .catch(function(error) {
-                        console.error('Print error:', error);
-                        showToast('Error al imprimir: ' + error.message, 'error');
-                        
-                        // Fallback: abrir ventana de impresión tradicional
-                        console.log('Usando fallback de impresión tradicional...');
-                        openTraditionalPrintWindow(saleId);
-                    });
+                        if (result.printerInfo) {
+                            console.log('Impresora utilizada:', result.printerInfo);
+                        }
+                        console.log('Print job sent successfully:', result);
+                    } else {
+                        if (result.fallback === 'browser_print') {
+                            console.log('Impresión directa no disponible, usando método silencioso...');
+                            showToast('Usando método de impresión silencioso...', 'info');
+                            printSilently(saleId);
+                        } else {
+                            throw new Error(result.error || 'Error desconocido en la impresión');
+                        }
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Print error:', error);
+                    console.log('Intentando método de impresión silencioso...');
+                    printSilently(saleId);
+                });
             } else {
                 // Para facturas, usar PDF por ahora
                 window.open('/pdf/invoice/' + saleId, '_blank');
                 showToast('Factura descargada', 'success');
             }
+        }
+
+        // Nueva función para imprimir silenciosamente
+        function printSilently(saleId) {
+            showToast('Preparando impresión silenciosa...', 'info');
+            
+            // Obtener contenido del ticket
+            fetch('/direct-print/' + saleId)
+                .then(function(response) { return response.text(); })
+                .then(function(content) {
+                    // Crear ventana de impresión completamente oculta
+                    var printWindow = window.open('', '_blank', 'width=1,height=1,left=-9999,top=-9999,menubar=no,toolbar=no,scrollbars=no');
+                    
+                    if (!printWindow) {
+                        showToast('Error: Bloqueador de pop-ups activo', 'error');
+                        return;
+                    }
+                    
+                    // HTML optimizado para impresión térmica
+                    var printHTML = '<!DOCTYPE html>' +
+                        '<html><head>' +
+                        '<title>Ticket</title>' +
+                        '<style>' +
+                        '@media print {' +
+                        '@page { size: 80mm auto; margin: 0; }' +
+                        'body { margin: 0; padding: 2mm; font-family: "Courier New", monospace; font-size: 11px; line-height: 1.1; }' +
+                        '}' +
+                        '@media screen { body { display: none; } }' +
+                        '</style>' +
+                        '</head>' +
+                        '<body>' +
+                        '<pre>' + escapeHtml(content) + '</pre>' +
+                        '</body>' +
+                        '</html>';
+                    
+                    printWindow.document.write(printHTML);
+                    printWindow.document.close();
+                    
+                    // Esperar que se cargue y luego imprimir automáticamente
+                    setTimeout(function() {
+                        try {
+                            printWindow.focus();
+                            
+                            // Imprimir inmediatamente
+                            printWindow.print();
+                            
+                            showToast('Enviado a impresora', 'success');
+                            
+                            // Cerrar ventana después de imprimir
+                            setTimeout(function() {
+                                try {
+                                    printWindow.close();
+                                } catch (e) {
+                                    console.log('Ventana ya cerrada');
+                                }
+                            }, 2000);
+                            
+                        } catch (e) {
+                            console.error('Error en impresión silenciosa:', e);
+                            showToast('Error en impresión: ' + e.message, 'error');
+                            printWindow.close();
+                        }
+                    }, 1000);
+                    
+                })
+                .catch(function(error) {
+                    console.error('Error al obtener contenido para impresión silenciosa:', error);
+                    showToast('Error: ' + error.message, 'error');
+                });
+        }
+
+        // Método de fallback usando iframe
+        function printWithIframe(saleId) {
+            // En lugar de usar iframe que puede mostrar diálogo, usar una técnica más silenciosa
+            
+            // Crear un elemento de impresión invisible
+            var printDiv = document.createElement('div');
+            printDiv.style.position = 'absolute';
+            printDiv.style.left = '-9999px';
+            printDiv.style.top = '-9999px';
+            printDiv.style.width = '80mm';
+            printDiv.style.fontFamily = 'Courier New, monospace';
+            printDiv.style.fontSize = '11px';
+            printDiv.style.lineHeight = '1.2';
+            printDiv.style.color = 'black';
+            printDiv.style.backgroundColor = 'white';
+            
+            // Obtener contenido del ticket
+            fetch('/direct-print/' + saleId)
+                .then(function(response) { return response.text(); })
+                .then(function(content) {
+                    printDiv.innerHTML = '<pre>' + escapeHtml(content) + '</pre>';
+                    document.body.appendChild(printDiv);
+                    
+                    // Crear CSS específico para impresión
+                    var style = document.createElement('style');
+                    style.textContent = `
+                        @media print {
+                            * { visibility: hidden; }
+                            #print-content-${saleId}, #print-content-${saleId} * { visibility: visible; }
+                            #print-content-${saleId} {
+                                position: absolute;
+                                left: 0;
+                                top: 0;
+                                width: 80mm;
+                                font-family: 'Courier New', monospace;
+                                font-size: 11px;
+                                margin: 0;
+                                padding: 0;
+                            }
+                            @page {
+                                size: 80mm auto;
+                                margin: 0;
+                            }
+                        }`;
+                    document.head.appendChild(style);
+                    
+                    printDiv.id = 'print-content-' + saleId;
+                    
+                    // Usar técnica más avanzada para imprimir silenciosamente
+                    setTimeout(function() {
+                        // Guardar contenido original
+                        var originalContents = document.body.innerHTML;
+                        
+                        // Reemplazar temporalmente el contenido del body
+                        document.body.innerHTML = printDiv.outerHTML;
+                        
+                        // Imprimir
+                        try {
+                            // Para Chrome/Edge - Intentar imprimir sin diálogo
+                            if (window.chrome && window.chrome.webstore) {
+                                // Método específico para Chrome
+                                window.print();
+                            } else {
+                                // Método estándar
+                                window.print();
+                            }
+                        } catch (e) {
+                            console.error('Error en impresión:', e);
+                        }
+                        
+                        // Restaurar contenido original después de un breve delay
+                        setTimeout(function() {
+                            document.body.innerHTML = originalContents;
+                            
+                            // Reinicializar Livewire después de restaurar el contenido
+                            if (window.Livewire) {
+                                window.Livewire.restart();
+                            }
+                            
+                            showToast('Impresión procesada', 'info');
+                        }, 1000);
+                        
+                    }, 500);
+                })
+                .catch(function(error) {
+                    console.error('Error al obtener contenido para imprimir:', error);
+                    showToast('Error al obtener contenido: ' + error.message, 'error');
+                    
+                    // Limpiar elementos creados
+                    if (printDiv.parentNode) {
+                        printDiv.parentNode.removeChild(printDiv);
+                    }
+                });
         }
 
         // Función para impresión directa moderna

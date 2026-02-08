@@ -73,6 +73,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Direct Printing - Ruta alternativa
     Route::get('/direct-print/{sale}', [DirectPrintController::class, 'printTicket'])->name('direct.print');
+    Route::post('/direct-print-raw/{sale}', [DirectPrintController::class, 'printTicketRaw'])->name('direct.print.raw.post');
     Route::get('/direct-print-raw/{sale}', [DirectPrintController::class, 'printTicketRaw'])->name('direct.print.raw');
     Route::get('/print/ticket/{sale}', [DirectPrintController::class, 'printTicket'])->name('print.ticket.direct');
     Route::get('/print/ticket-escpos/{sale}', [DirectPrintController::class, 'printTicketESCPOS'])->name('print.ticket.escpos');
