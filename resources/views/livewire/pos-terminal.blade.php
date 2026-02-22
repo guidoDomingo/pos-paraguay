@@ -153,13 +153,18 @@
             transform: scale(1.1);
         }
         
-        /* Efectos de carga lazy */
-        img[loading="lazy"] {
-            opacity: 0;
-            transition: opacity 0.3s;
+        /* Efectos de carga de imágenes */
+        .product-card img {
+            opacity: 1;
+            transition: opacity 0.3s ease;
         }
         
-        img[loading="lazy"].loaded {
+        .product-image-loading {
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+        
+        .product-image-loaded {
             opacity: 1;
         }
         
@@ -503,7 +508,7 @@
                                         <div class="product-image-container">
                                             <img src="{{ $product->getImageUrl('thumbnail') }}" 
                                                  alt="{{ $product->name }}" 
-                                                 loading="lazy"
+                                                 loading="eager"
                                                  onclick="event.stopPropagation(); showImageZoom('{{ $product->getImageUrl('medium') }}', '{{ $product->name }}')">
                                         </div>
                                     @else
@@ -1278,55 +1283,33 @@
     @endif
     
     <script>
-        // Lazy loading de imágenes  
-        document.addEventListener('DOMContentLoaded', function() {
-            if ('loading' in HTMLImageElement.prototype) {
-                // El navegador soporta lazy loading nativo
-                const images = document.querySelectorAll('img[loading="lazy"]');
-                images.forEach(img => {
+        // Inicialización de imágenes
+        function initializeImages() {
+            const images = document.querySelectorAll('.product-image-container img');
+            images.forEach(img => {
+                if (!img.complete) {
+                    img.classList.add('product-image-loading');
                     img.addEventListener('load', function() {
-                        this.classList.add('loaded');
+                        this.classList.remove('product-image-loading');
+                        this.classList.add('product-image-loaded');
                     });
-                    // Si ya está cargada (cache)
-                    if (img.complete) {
-                        img.classList.add('loaded');
-                    }
-                });
-            } else {
-                // Polyfill para navegadores que no soportan lazy loading
-                const images = document.querySelectorAll('img[loading="lazy"]');
-                const imageObserver = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const img = entry.target;
-                            img.addEventListener('load', function() {
-                                this.classList.add('loaded');
-                            });
-                            if (img.complete) {
-                                img.classList.add('loaded');
-                            }
-                            observer.unobserve(img);
-                        }
-                    });
-                });
-                
-                images.forEach(img => {
-                    imageObserver.observe(img);
-                });
-            }
-        });
-        
-        // Observer para imágenes dinámicas (Livewire)
-        document.addEventListener('livewire:navigated', function() {
-            const newImages = document.querySelectorAll('img[loading="lazy"]:not(.loaded)');
-            newImages.forEach(img => {
-                img.addEventListener('load', function() {
-                    this.classList.add('loaded');
-                });
-                if (img.complete) {
-                    img.classList.add('loaded');
+                } else {
+                    img.classList.add('product-image-loaded');
                 }
             });
+        }
+        
+        // Ejecutar al cargar la página
+        document.addEventListener('DOMContentLoaded', initializeImages);
+        
+        // Ejecutar después de cada actualización de Livewire
+        document.addEventListener('livewire:updated', function() {
+            setTimeout(initializeImages, 50);
+        });
+        
+        // También para navegación de Livewire
+        document.addEventListener('livewire:navigated', function() {
+            setTimeout(initializeImages, 50);
         });
         
         // Funciones para zoom de imagen
