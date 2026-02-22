@@ -5,7 +5,6 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\ImageManagerStatic as Image;
 
 class ProductImageService
 {
@@ -86,7 +85,7 @@ class ProductImageService
         $extension = strtolower($file->getClientOriginalExtension());
         
         // Convertir a JPG para mejor compresión web si no es PNG con transparencia
-        if (!in_array($extension, ['png', 'webp'])) {
+        if (!in_array($extension, ['png'])) {
             $extension = 'jpg';
         }
         
@@ -94,7 +93,7 @@ class ProductImageService
     }
     
     /**
-     * Crea las diferentes versiones de la imagen
+     * Crea las diferentes versiones de la imagen usando GD
      */
     private function createImageSizes(UploadedFile $file, string $filename): array
     {
@@ -103,46 +102,181 @@ class ProductImageService
         $extension = $pathInfo['extension'];
         
         // Cargar imagen original
-        $image = Image::make($file);
+        $imageInfo = getimagesizefromstring($file->getContent());
+        $originalWidth = $imageInfo[0];
+        $originalHeight = $imageInfo[1];
         
-        // Optimizar orientación (por si viene de móvil)
-        $image->orientate();
+        // Crear recurso de imagen según el tipo
+        $originalImage = $this->createImageFromFile($file);
         
         $paths = [];
         
         // Thumbnail (150x150 - cuadrado con crop centrado)
-        $thumbnail = clone $image;
-        $thumbnail->fit(self::THUMBNAIL_SIZE, self::THUMBNAIL_SIZE, function ($constraint) {
-            $constraint->upsize();
-        });
+        $thumbnail = $this->resizeAndCrop($originalImage, $originalWidth, $originalHeight, self::THUMBNAIL_SIZE, self::THUMBNAIL_SIZE);
         $thumbPath = "products/{$baseName}_thumb.{$extension}";
-        Storage::disk('public')->put($thumbPath, $thumbnail->encode($extension, self::QUALITY));
+        Storage::disk('public')->put($thumbPath, $this->outputImage($thumbnail, $extension));
+        imagedestroy($thumbnail);
         $paths['thumbnail'] = $thumbPath;
         
         // Medium (400px ancho, altura proporcional)
-        $medium = clone $image;
-        $medium->resize(self::MEDIUM_SIZE, null, function ($constraint) {
-            $constraint->aspectRatio();
-            $constraint->upsize();
-        });
+        $mediumDimensions = $this->calculateAspectRatio($originalWidth, $originalHeight, self::MEDIUM_SIZE);
+        $medium = $this->resizeImage($originalImage, $originalWidth, $originalHeight, $mediumDimensions['width'], $mediumDimensions['height']);
         $mediumPath = "products/{$baseName}_medium.{$extension}";
-        Storage::disk('public')->put($mediumPath, $medium->encode($extension, self::QUALITY));
+        Storage::disk('public')->put($mediumPath, $this->outputImage($medium, $extension));
+        imagedestroy($medium);
         $paths['medium'] = $mediumPath;
         
         // Full (800px ancho máximo, altura proporcional)
-        $full = clone $image;
-        $full->resize(self::FULL_SIZE, null, function ($constraint) {
-            $constraint->aspectRatio();
-            $constraint->upsize();
-        });
+        $fullDimensions = $this->calculateAspectRatio($originalWidth, $originalHeight, self::FULL_SIZE);
+        $full = $this->resizeImage($originalImage, $originalWidth, $originalHeight, $fullDimensions['width'], $fullDimensions['height']);
         $fullPath = "products/{$baseName}_full.{$extension}";
-        Storage::disk('public')->put($fullPath, $full->encode($extension, self::QUALITY));
+        Storage::disk('public')->put($fullPath, $this->outputImage($full, $extension));
+        imagedestroy($full);
         $paths['full'] = $fullPath;
         
-        // Guardar la ruta del medium como principal (balance entre calidad y peso)
+        // Limpiar imagen original
+        imagedestroy($originalImage);
+        
+        // Guardar la ruta del medium como principal
         $paths['main'] = $mediumPath;
         
         return $paths;
+    }
+    
+    /**
+     * Crea un recurso de imagen desde el archivo subido
+     */
+    private function createImageFromFile(UploadedFile $file)
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $content = $file->getContent();
+        
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                return imagecreatefromstring($content);
+            case 'png':
+                $image = imagecreatefromstring($content);
+                imagealphablending($image, false);
+                imagesavealpha($image, true);
+                return $image;
+            case 'webp':
+                return imagecreatefromstring($content);
+            default:
+                throw new \InvalidArgumentException('Tipo de imagen no soportado');
+        }
+    }
+    
+    /**
+     * Redimensiona una imagen manteniendo aspecto
+     */
+    private function resizeImage($source, $sourceWidth, $sourceHeight, $newWidth, $newHeight)
+    {
+        $newImage = imagecreatetruecolor($newWidth, $newHeight);
+        
+        // Preservar transparencia para PNG
+        if (imageistruecolor($source)) {
+            imagealphablending($newImage, false);
+            imagesavealpha($newImage, true);
+            $transparent = imagecolorallocatealpha($newImage, 0, 0, 0, 127);
+            imagefill($newImage, 0, 0, $transparent);
+        }
+        
+        imagecopyresampled(
+            $newImage, $source,
+            0, 0, 0, 0,
+            $newWidth, $newHeight,
+            $sourceWidth, $sourceHeight
+        );
+        
+        return $newImage;
+    }
+    
+    /**
+     * Redimensiona y recorta para obtener dimensiones exactas (crop centrado)
+     */
+    private function resizeAndCrop($source, $sourceWidth, $sourceHeight, $newWidth, $newHeight)
+    {
+        // Calcular la escala necesaria para que la imagen complete el área destino
+        $scaleX = $newWidth / $sourceWidth;
+        $scaleY = $newHeight / $sourceHeight;
+        $scale = max($scaleX, $scaleY); // Usar la escala mayor para cubrir completamente
+        
+        // Nuevas dimensiones escaladas
+        $scaledWidth = intval($sourceWidth * $scale);
+        $scaledHeight = intval($sourceHeight * $scale);
+        
+        // Crear imagen temporal escalada
+        $scaledImage = $this->resizeImage($source, $sourceWidth, $sourceHeight, $scaledWidth, $scaledHeight);
+        
+        // Crear imagen final con las dimensiones deseadas
+        $croppedImage = imagecreatetruecolor($newWidth, $newHeight);
+        
+        // Preservar transparencia
+        imagealphablending($croppedImage, false);
+        imagesavealpha($croppedImage, true);
+        $transparent = imagecolorallocatealpha($croppedImage, 0, 0, 0, 127);
+        imagefill($croppedImage, 0, 0, $transparent);
+        
+        // Calcular offset para centrar el recorte
+        $offsetX = intval(($scaledWidth - $newWidth) / 2);
+        $offsetY = intval(($scaledHeight - $newHeight) / 2);
+        
+        // Copiar la porción central
+        imagecopy(
+            $croppedImage, $scaledImage,
+            0, 0, $offsetX, $offsetY,
+            $newWidth, $newHeight
+        );
+        
+        imagedestroy($scaledImage);
+        
+        return $croppedImage;
+    }
+    
+    /**
+     * Calcula las nuevas dimensiones manteniendo aspecto
+     */
+    private function calculateAspectRatio($width, $height, $maxWidth, $maxHeight = null)
+    {
+        if ($maxHeight === null) {
+            $maxHeight = $maxWidth;
+        }
+        
+        $ratio = min($maxWidth / $width, $maxHeight / $height);
+        
+        // No agrandar imágenes pequeñas
+        if ($ratio > 1) {
+            $ratio = 1;
+        }
+        
+        return [
+            'width' => intval($width * $ratio),
+            'height' => intval($height * $ratio)
+        ];
+    }
+    
+    /**
+     * Genera la salida de la imagen en el formato especificado
+     */
+    private function outputImage($image, $extension)
+    {
+        ob_start();
+        
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                imagejpeg($image, null, self::QUALITY);
+                break;
+            case 'png':
+                imagepng($image, null, 9); // Máxima compresión PNG
+                break;
+            case 'webp':
+                imagewebp($image, null, self::QUALITY);
+                break;
+        }
+        
+        return ob_get_clean();
     }
     
     /**
@@ -162,6 +296,11 @@ class ProductImageService
             
             // Remover '_medium' si ya existe en el nombre
             $baseName = str_replace('_medium', '', $baseName);
+            
+            // Convertir 'thumbnail' a 'thumb' para coincidir con los nombres de archivo
+            if ($size === 'thumbnail') {
+                $size = 'thumb';
+            }
             
             $imagePath = "products/{$baseName}_{$size}.{$extension}";
         }

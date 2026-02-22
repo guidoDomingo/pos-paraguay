@@ -99,6 +99,36 @@ class Product extends Model
             default => 0.00,
         };
     }
+    
+    /**
+     * Obtiene la URL de la imagen en el tamaño especificado
+     */
+    public function getImageUrl(string $size = 'medium'): ?string
+    {
+        if (!$this->image_path) {
+            return null;
+        }
+        
+        $imageService = app(\App\Services\ProductImageService::class);
+        return $imageService->getImageUrl($this->image_path, $size);
+    }
+    
+    /**
+     * Obtiene todas las URLs de la imagen
+     */
+    public function getAllImageUrls(): array
+    {
+        $imageService = app(\App\Services\ProductImageService::class);
+        return $imageService->getAllImageUrls($this->image_path);
+    }
+    
+    /**
+     * Verifica si el producto tiene imagen
+     */
+    public function hasImage(): bool
+    {
+        return !empty($this->image_path);
+    }
 
     public function getPriceWithIva(): float
     {

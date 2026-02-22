@@ -49,6 +49,7 @@
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
+                                        <th width="80">Imagen</th>
                                         <th>Código</th>
                                         <th>Nombre</th>
                                         <th>Categoría</th>
@@ -61,6 +62,22 @@
                                 <tbody>
                                     @foreach($products as $product)
                                         <tr>
+                                            <td class="text-center">
+                                                @if($product->hasImage())
+                                                    <img src="{{ $product->getImageUrl('thumbnail') }}" 
+                                                         alt="{{ $product->name }}" 
+                                                         class="product-thumbnail cursor-pointer" 
+                                                         data-full-image="{{ $product->getImageUrl('medium') }}"
+                                                         data-product-name="{{ $product->name }}"
+                                                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #e3e6f0; transition: all 0.3s ease;"
+                                                         title="Click para ampliar">
+                                                @else
+                                                    <div class="product-thumbnail-placeholder d-flex align-items-center justify-content-center" 
+                                                         style="width: 50px; height: 50px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;">
+                                                        <i class="bi bi-image text-muted" style="font-size: 20px;"></i>
+                                                    </div>
+                                                @endif
+                                            </td>
                                             <td>
                                                 <code class="bg-light px-2 py-1 rounded">{{ $product->code }}</code>
                                             </td>
@@ -166,4 +183,145 @@
             </div>
         </div>
     @endif
+
+    <!-- Modal para ampliar imagen -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">
+                        <i class="bi bi-image me-2"></i>
+                        <span id="imageModalProductName">Imagen del Producto</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <img id="modalProductImage" src="" alt="" class="img-fluid rounded shadow" style="max-height: 500px;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .product-thumbnail {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .product-thumbnail:hover {
+            transform: scale(1.1);
+            border-color: var(--bs-primary) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .product-thumbnail-placeholder:hover {
+            border-color: var(--bs-primary);
+            background: #f0f0f0;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        /* Animación del modal */
+        .modal.fade .modal-dialog {
+            transition: transform 0.3s ease-out;
+        }
+        
+        .modal.show .modal-dialog {
+            transform: none;
+        }
+        
+        /* Responsive para móvil */
+        @media (max-width: 768px) {
+            .product-thumbnail {
+                width: 40px !important;
+                height: 40px !important;
+            }
+            
+            .product-thumbnail-placeholder {
+                width: 40px !important;
+                height: 40px !important;
+            }
+            
+            .product-thumbnail-placeholder i {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Manejar clicks en las miniaturas de productos
+            const productThumbnails = document.querySelectorAll('.product-thumbnail');
+            const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+            const modalImage = document.getElementById('modalProductImage');
+            const modalTitle = document.getElementById('imageModalProductName');
+            
+            productThumbnails.forEach(thumbnail => {
+                thumbnail.addEventListener('click', function() {
+                    const fullImageUrl = this.getAttribute('data-full-image');
+                    const productName = this.getAttribute('data-product-name');
+                    
+                    if (fullImageUrl) {
+                        // Configurar el modal
+                        modalImage.src = fullImageUrl;
+                        modalImage.alt = productName;
+                        modalTitle.textContent = productName;
+                        
+                        // Mostrar el modal
+                        imageModal.show();
+                    }
+                });
+                
+                // Agregar efecto de tooltip
+                thumbnail.setAttribute('title', 'Click para ampliar imagen');
+            });
+            
+            // Precargar imágenes al pasar el mouse (opcional, mejora UX)
+            productThumbnails.forEach(thumbnail => {
+                thumbnail.addEventListener('mouseenter', function() {
+                    const fullImageUrl = this.getAttribute('data-full-image');
+                    if (fullImageUrl) {
+                        const preloadImage = new Image();
+                        preloadImage.src = fullImageUrl;
+                    }
+                });
+            });
+            
+            // Cerrar modal con tecla Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    imageModal.hide();
+                }
+            });
+        });
+        
+        // Funcionalidad de búsqueda mejorada (opcional)
+        const searchInput = document.getElementById('searchProducts');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const tableRows = document.querySelectorAll('tbody tr');
+                
+                tableRows.forEach(row => {
+                    const productName = row.children[2].textContent.toLowerCase();
+                    const productCode = row.children[1].textContent.toLowerCase();
+                    
+                    if (productName.includes(searchTerm) || productCode.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    </script>
 </x-app-layout>

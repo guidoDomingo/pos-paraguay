@@ -1,4 +1,219 @@
 <div>
+    <style>
+        .product-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            overflow: hidden;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: var(--bs-primary);
+        }
+        
+        .product-card img {
+            transition: transform 0.3s ease;
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #e9ecef;
+        }
+        
+        .product-card img:hover {
+            border-color: var(--bs-primary);
+            transform: scale(1.1);
+        }
+        
+        .product-card:hover img {
+            transform: scale(1.05);
+        }
+        
+        .product-image-container {
+            width: 70px;
+            height: 70px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        
+        .product-image-placeholder {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 1.5rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+        }
+        
+        /* Modal para ampliar imagen */
+        .image-zoom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .image-zoom-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .image-zoom-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: scale(0.7);
+            transition: transform 0.3s ease;
+        }
+        
+        .image-zoom-modal.show .image-zoom-content {
+            transform: scale(1);
+        }
+        
+        .image-zoom-content img {
+            width: auto;
+            height: auto;
+            max-width: 400px;
+            max-height: 400px;
+            border-radius: 10px;
+        }
+        
+        .close-zoom {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            line-height: 1;
+        }
+        
+        .product-image-placeholder {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 2rem;
+            height: 120px;
+        }
+
+        .search-input {
+            padding-left: 45px;
+            border-radius: 25px;
+            border: 2px solid #e9ecef;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--bs-primary);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+        }
+        
+        /* Badge animado */
+        .badge {
+            transition: all 0.2s ease;
+        }
+        
+        .product-card:hover .badge {
+            transform: scale(1.1);
+        }
+        
+        /* Efectos de carga lazy */
+        img[loading="lazy"] {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        img[loading="lazy"].loaded {
+            opacity: 1;
+        }
+        
+        /* Responsivo para imágenes */
+        @media (max-width: 768px) {
+            .product-image-container {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .product-card img {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .product-image-placeholder {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+            
+            .card-body {
+                padding: 0.75rem !important;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .product-image-container {
+                width: 45px;
+                height: 45px;
+            }
+            
+            .product-card img {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .product-image-placeholder {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
+            }
+            
+            .image-zoom-content {
+                padding: 15px;
+            }
+            
+            .image-zoom-content img {
+                max-width: 280px;
+                max-height: 280px;
+            }
+        }
+    </style>
+
     <div class="row g-4">
         <!-- Modal de Pago Funcional -->
         @if($showPaymentModal)
@@ -203,15 +418,36 @@
                     @foreach($searchResults as $product)
                     <div class="col-md-6 col-lg-4">
                         <div class="card product-card h-100" wire:click="addToCart({{ $product->id }})" style="cursor: pointer;">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="card-title fw-bold text-primary mb-0">{{ $product->name }}</h6>
-                                    <span class="badge bg-success">{{ $product->code }}</span>
-                                </div>
-                                <p class="card-text text-muted small mb-2">{{ Str::limit($product->description, 60) }}</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="h6 text-success fw-bold mb-0">₲ {{ number_format($product->sale_price, 0, ',', '.') }}</span>
-                                    <small class="text-muted">Stock: {{ $product->stock ?? 0 }}</small>
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-start gap-3">
+                                    @if($product->hasImage())
+                                        <div class="product-image-container">
+                                            <img src="{{ $product->getImageUrl('thumbnail') }}" 
+                                                 alt="{{ $product->name }}" 
+                                                 loading="lazy"
+                                                 onclick="event.stopPropagation(); showImageZoom('{{ $product->getImageUrl('medium') }}', '{{ $product->name }}')">
+                                        </div>
+                                    @else
+                                        <div class="product-image-placeholder">
+                                            <i class="bi bi-image"></i>
+                                        </div>
+                                    @endif
+                                    
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <h6 class="card-title fw-bold text-primary mb-0 text-truncate">{{ $product->name }}</h6>
+                                            <span class="badge bg-success ms-2 flex-shrink-0">{{ $product->code }}</span>
+                                        </div>
+                                        @if($product->description)
+                                            <p class="card-text text-muted small mb-2 text-truncate">{{ Str::limit($product->description, 40) }}</p>
+                                        @endif
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="h6 text-success fw-bold mb-0">₲ {{ number_format($product->sale_price, 0, ',', '.') }}</span>
+                                            <small class="text-muted">
+                                                <i class="bi bi-box-seam me-1"></i>{{ $product->stock ?? 0 }}
+                                            </small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -951,5 +1187,99 @@
         </div>
     </div>
     @endif
+    
+    <script>
+        // Lazy loading de imágenes  
+        document.addEventListener('DOMContentLoaded', function() {
+            if ('loading' in HTMLImageElement.prototype) {
+                // El navegador soporta lazy loading nativo
+                const images = document.querySelectorAll('img[loading="lazy"]');
+                images.forEach(img => {
+                    img.addEventListener('load', function() {
+                        this.classList.add('loaded');
+                    });
+                    // Si ya está cargada (cache)
+                    if (img.complete) {
+                        img.classList.add('loaded');
+                    }
+                });
+            } else {
+                // Polyfill para navegadores que no soportan lazy loading
+                const images = document.querySelectorAll('img[loading="lazy"]');
+                const imageObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            img.addEventListener('load', function() {
+                                this.classList.add('loaded');
+                            });
+                            if (img.complete) {
+                                img.classList.add('loaded');
+                            }
+                            observer.unobserve(img);
+                        }
+                    });
+                });
+                
+                images.forEach(img => {
+                    imageObserver.observe(img);
+                });
+            }
+        });
+        
+        // Observer para imágenes dinámicas (Livewire)
+        document.addEventListener('livewire:navigated', function() {
+            const newImages = document.querySelectorAll('img[loading="lazy"]:not(.loaded)');
+            newImages.forEach(img => {
+                img.addEventListener('load', function() {
+                    this.classList.add('loaded');
+                });
+                if (img.complete) {
+                    img.classList.add('loaded');
+                }
+            });
+        });
+        
+        // Funciones para zoom de imagen
+        function showImageZoom(imageUrl, productName) {
+            const modal = document.getElementById('imageZoomModal');
+            const modalImg = document.getElementById('zoomedImage');
+            const modalTitle = document.getElementById('zoomImageTitle');
+            
+            modalImg.src = imageUrl;
+            modalTitle.textContent = productName;
+            modal.classList.add('show');
+        }
+        
+        function closeImageZoom() {
+            const modal = document.getElementById('imageZoomModal');
+            modal.classList.remove('show');
+        }
+        
+        // Cerrar modal al hacer clic fuera de la imagen
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('image-zoom-modal')) {
+                closeImageZoom();
+            }
+        });
+        
+        // Cerrar modal con tecla Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageZoom();
+            }
+        });
+    </script>
+
+    <!-- Modal para zoom de imagen de producto -->
+    <div id="imageZoomModal" class="image-zoom-modal">
+        <div class="image-zoom-content">
+            <button class="close-zoom" onclick="closeImageZoom()">&times;</button>
+            <div class="text-center">
+                <h5 id="zoomImageTitle" class="mb-3 text-primary"></h5>
+                <img id="zoomedImage" src="" alt="Imagen ampliada">
+            </div>
+        </div>
+    </div>
 </div>
 {{-- Final del archivo --}}
