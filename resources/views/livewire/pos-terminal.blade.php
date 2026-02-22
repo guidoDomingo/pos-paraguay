@@ -170,7 +170,7 @@
                     <i class="bi bi-search position-absolute" style="left: 15px; top: 50%; transform: translateY(-50%); color: #6c757d;"></i>
                     <input 
                         type="text" 
-                        wire:model="search" 
+                        wire:model.live.debounce.300ms="search" 
                         class="form-control search-input"
                         placeholder="Buscar productos por código, nombre o código de barras..."
                         autocomplete="off"
@@ -817,13 +817,6 @@
             
             return toast;
         }
-
-
-            if (cashInput && !cashInput.matches(':focus')) {
-                // Usar wire:model para sincronización automática, no necesita JavaScript
-                // cashInput.value será actualizado automáticamente por Livewire
-            }
-        });
 
         document.addEventListener('DOMContentLoaded', function () {
             // Auto-hide alerts after 5 seconds

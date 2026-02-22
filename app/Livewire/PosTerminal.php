@@ -87,7 +87,7 @@ class PosTerminal extends Component
 
     public function updatedSearch()
     {
-        if (strlen($this->search) >= 1) {
+        if (strlen($this->search) >= 3) {
             $this->searchResults = Product::where('company_id', Auth::user()->company_id)
                 ->where('is_active', true)
                 ->where(function ($query) {
