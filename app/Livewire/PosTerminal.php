@@ -157,7 +157,7 @@ class PosTerminal extends Component
         }
 
         // Obtener precios disponibles y válidos
-        $availablePrices = $this->getAvailablePrices($product);
+        $availablePrices = $product->getAllPrices();
         
         // Si hay múltiples precios, mostrar modal de selección
         if (count($availablePrices) > 1) {
@@ -168,33 +168,8 @@ class PosTerminal extends Component
         }
 
         // Si solo hay un precio o es solo precio de venta, agregarlo directamente
-        $selectedPrice = count($availablePrices) > 0 ? $availablePrices[0] : ['type' => 'sale_price', 'value' => $product->sale_price, 'label' => 'Precio Venta'];
+        $selectedPrice = count($availablePrices) > 0 ? $availablePrices[0] : ['type' => 'sale_price', 'value' => $product->sale_price, 'label' => 'Precio Venta', 'description' => 'Precio estándar'];
         $this->addToCartWithPrice($product, $selectedPrice);
-    }
-    
-    public function getAvailablePrices($product)
-    {
-        $prices = [];
-        
-        // Precio de venta (siempre disponible)
-        if ($product->sale_price > 0) {
-            $prices[] = [
-                'type' => 'sale_price',
-                'value' => $product->sale_price,
-                'label' => 'Precio Venta'
-            ];
-        }
-        
-        // Precio mayorista (si está disponible y es diferente)
-        if ($product->wholesale_price > 0 && $product->wholesale_price != $product->sale_price) {
-            $prices[] = [
-                'type' => 'wholesale_price',
-                'value' => $product->wholesale_price,
-                'label' => 'Precio Mayorista'
-            ];
-        }
-        
-        return $prices;
     }
 
     public function addToCartWithPrice($product, $priceInfo)

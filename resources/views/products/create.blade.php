@@ -143,10 +143,11 @@
                                 <!-- Precios -->
                                 <div class="card mb-4">
                                     <div class="card-header">
-                                        <h6 class="mb-0"><i class="bi bi-currency-exchange me-2"></i>Información de Precios</h6>
+                                        <h6 class="mb-0"><i class="bi bi-currency-exchange me-2"></i>Configuración de Precios</h6>
                                     </div>
                                     <div class="card-body">
-                                        <div class="row g-3">
+                                        <!-- Precios básicos -->
+                                        <div class="row g-3 mb-4">
                                             <div class="col-md-4">
                                                 <div class="mb-3">
                                                     <label for="cost_price" class="form-label">Precio de Costo</label>
@@ -168,11 +169,12 @@
                                                         <span class="input-group-text">₲</span>
                                                         <input type="number" class="form-control @error('sale_price') is-invalid @enderror" 
                                                                id="sale_price" name="sale_price" value="{{ old('sale_price') }}" 
-                                                               min="0" step="0.01" placeholder="0.00">
+                                                               min="0" step="0.01" placeholder="0.00" required>
                                                     </div>
                                                     @error('sale_price')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
+                                                    <div class="form-text">Precio estándar para venta minorista</div>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
@@ -185,6 +187,92 @@
                                                                min="0" step="0.01" placeholder="0.00">
                                                     </div>
                                                     @error('wholesale_price')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                    <div class="form-text">Para ventas al por mayor</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Precios especiales -->
+                                        <hr class="my-4">
+                                        <h6 class="mb-3"><i class="bi bi-star me-2"></i>Precios Especiales</h6>
+                                        
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="check_price" class="form-label">Precio para Cheques</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">₲</span>
+                                                        <input type="number" class="form-control @error('check_price') is-invalid @enderror" 
+                                                               id="check_price" name="check_price" value="{{ old('check_price') }}" 
+                                                               min="0" step="0.01" placeholder="0.00">
+                                                    </div>
+                                                    @error('check_price')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="check_price_description" class="form-label">Descripción del precio</label>
+                                                    <input type="text" class="form-control @error('check_price_description') is-invalid @enderror" 
+                                                           id="check_price_description" name="check_price_description" 
+                                                           value="{{ old('check_price_description') }}" 
+                                                           placeholder="Ej: 5% descuento por pago en cheque">
+                                                    @error('check_price_description')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="credit_price" class="form-label">Precio a Crédito</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">₲</span>
+                                                        <input type="number" class="form-control @error('credit_price') is-invalid @enderror" 
+                                                               id="credit_price" name="credit_price" value="{{ old('credit_price') }}" 
+                                                               min="0" step="0.01" placeholder="0.00">
+                                                    </div>
+                                                    @error('credit_price')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="credit_price_description" class="form-label">Descripción del precio</label>
+                                                    <input type="text" class="form-control @error('credit_price_description') is-invalid @enderror" 
+                                                           id="credit_price_description" name="credit_price_description" 
+                                                           value="{{ old('credit_price_description') }}" 
+                                                           placeholder="Ej: Precio con financiamiento a 30 días">
+                                                    @error('credit_price_description')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="special_price" class="form-label">Precio Especial/Promocional</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">₲</span>
+                                                        <input type="number" class="form-control @error('special_price') is-invalid @enderror" 
+                                                               id="special_price" name="special_price" value="{{ old('special_price') }}" 
+                                                               min="0" step="0.01" placeholder="0.00">
+                                                    </div>
+                                                    @error('special_price')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="special_price_description" class="form-label">Descripción del precio especial</label>
+                                                    <input type="text" class="form-control @error('special_price_description') is-invalid @enderror" 
+                                                           id="special_price_description" name="special_price_description" 
+                                                           value="{{ old('special_price_description') }}" 
+                                                           placeholder="Ej: Oferta limitada por tiempo">
+                                                    @error('special_price_description')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
                                                 </div>

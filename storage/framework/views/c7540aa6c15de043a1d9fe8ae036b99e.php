@@ -406,11 +406,8 @@
                             <strong style="color: #007bff; font-size: 16px;"><?php echo e($price['label']); ?></strong>
                             <br>
                             <small style="color: #6c757d;">
-                                <!--[if BLOCK]><![endif]--><?php if($price['type'] === 'wholesale_price'): ?>
-                                    Ideal para ventas al por mayor
-                                <?php else: ?>
-                                    Precio estándar para venta minorista
-                                <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
+                                <?php echo e($price['description'] ?? 'Sin descripción'); ?>
+
                             </small>
                         </div>
                         <div style="text-align: right;">

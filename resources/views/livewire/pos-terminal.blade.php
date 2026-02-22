@@ -403,11 +403,7 @@
                             <strong style="color: #007bff; font-size: 16px;">{{ $price['label'] }}</strong>
                             <br>
                             <small style="color: #6c757d;">
-                                @if($price['type'] === 'wholesale_price')
-                                    Ideal para ventas al por mayor
-                                @else
-                                    Precio estándar para venta minorista
-                                @endif
+                                {{ $price['description'] ?? 'Sin descripción' }}
                             </small>
                         </div>
                         <div style="text-align: right;">

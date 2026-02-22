@@ -49,7 +49,13 @@ class ProductController extends Controller
             'unit' => 'nullable|string|max:50',
             'category_id' => 'nullable|exists:categories,id',
             'is_active' => 'nullable|boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120' // 5MB máximo
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120', // 5MB máximo
+            'check_price' => 'nullable|numeric|min:0',
+            'check_price_description' => 'nullable|string|max:255',
+            'credit_price' => 'nullable|numeric|min:0',
+            'credit_price_description' => 'nullable|string|max:255',
+            'special_price' => 'nullable|numeric|min:0',
+            'special_price_description' => 'nullable|string|max:255',
         ]);
         
         $data = $request->all();
@@ -107,7 +113,13 @@ class ProductController extends Controller
             'category_id' => 'nullable|exists:categories,id',
             'is_active' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120', // 5MB máximo
-            'remove_image' => 'nullable|boolean'
+            'remove_image' => 'nullable|boolean',
+            'check_price' => 'nullable|numeric|min:0',
+            'check_price_description' => 'nullable|string|max:255',
+            'credit_price' => 'nullable|numeric|min:0',
+            'credit_price_description' => 'nullable|string|max:255',
+            'special_price' => 'nullable|numeric|min:0',
+            'special_price_description' => 'nullable|string|max:255',
         ]);
         
         $data = $request->all();
