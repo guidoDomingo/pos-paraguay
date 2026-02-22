@@ -48,6 +48,9 @@ class PosTerminal extends Component
     public $showCustomerModal = false;
     public $showPaymentModal = false;
     public $showPrintModal = false;
+    public $showPriceSelectionModal = false;
+    public $selectedProduct = null;
+    public $availablePrices = [];
     public $lastSaleId = null;
     public $lastDocumentType = null;
     public $lastSaleNumber = null;
@@ -153,12 +156,55 @@ class PosTerminal extends Component
             }
         }
 
-        $cartItemKey = collect($this->cart)->search(function ($item) use ($productId) {
-            return $item['product_id'] == $productId;
+        // Obtener precios disponibles y válidos
+        $availablePrices = $this->getAvailablePrices($product);
+        
+        // Si hay múltiples precios, mostrar modal de selección
+        if (count($availablePrices) > 1) {
+            $this->selectedProduct = $product;
+            $this->availablePrices = $availablePrices;
+            $this->showPriceSelectionModal = true;
+            return;
+        }
+
+        // Si solo hay un precio o es solo precio de venta, agregarlo directamente
+        $selectedPrice = count($availablePrices) > 0 ? $availablePrices[0] : ['type' => 'sale_price', 'value' => $product->sale_price, 'label' => 'Precio Venta'];
+        $this->addToCartWithPrice($product, $selectedPrice);
+    }
+    
+    public function getAvailablePrices($product)
+    {
+        $prices = [];
+        
+        // Precio de venta (siempre disponible)
+        if ($product->sale_price > 0) {
+            $prices[] = [
+                'type' => 'sale_price',
+                'value' => $product->sale_price,
+                'label' => 'Precio Venta'
+            ];
+        }
+        
+        // Precio mayorista (si está disponible y es diferente)
+        if ($product->wholesale_price > 0 && $product->wholesale_price != $product->sale_price) {
+            $prices[] = [
+                'type' => 'wholesale_price',
+                'value' => $product->wholesale_price,
+                'label' => 'Precio Mayorista'
+            ];
+        }
+        
+        return $prices;
+    }
+
+    public function addToCartWithPrice($product, $priceInfo)
+    {
+        $cartItemKey = collect($this->cart)->search(function ($item) use ($product, $priceInfo) {
+            return $item['product_id'] == $product->id && $item['price_type'] == $priceInfo['type'];
         });
 
         if ($cartItemKey !== false) {
-            // Incrementar cantidad si ya existe
+            // Incrementar cantidad si ya existe con el mismo tipo de precio
             $this->cart[$cartItemKey]['quantity']++;
             $this->cart[$cartItemKey]['total_price'] = 
                 $this->cart[$cartItemKey]['quantity'] * $this->cart[$cartItemKey]['unit_price'];
@@ -169,18 +215,35 @@ class PosTerminal extends Component
                 'product_code' => $product->code,
                 'product_name' => $product->name,
                 'quantity' => 1,
-                'unit_price' => $product->sale_price,
-                'total_price' => $product->sale_price,
+                'unit_price' => $priceInfo['value'],
+                'total_price' => $priceInfo['value'],
                 'iva_type' => $product->iva_type,
                 'iva_rate' => $product->getIvaRate(),
+                'price_type' => $priceInfo['type'],
+                'price_label' => $priceInfo['label'],
             ];
         }
 
         $this->calculateTotals();
-        // No limpiar la búsqueda para mantener la lista visible
-        // $this->search = '';
-        // $this->searchResults = [];
-        session()->flash('success', 'Producto agregado al carrito');
+        $this->closePriceSelectionModal();
+        session()->flash('success', 'Producto agregado al carrito con ' . $priceInfo['label']);
+    }
+
+    public function selectPrice($priceTypeIndex)
+    {
+        if (!$this->selectedProduct || !isset($this->availablePrices[$priceTypeIndex])) {
+            return;
+        }
+
+        $selectedPrice = $this->availablePrices[$priceTypeIndex];
+        $this->addToCartWithPrice($this->selectedProduct, $selectedPrice);
+    }
+
+    public function closePriceSelectionModal()
+    {
+        $this->showPriceSelectionModal = false;
+        $this->selectedProduct = null;
+        $this->availablePrices = [];
     }
 
     public function updateQuantity($index, $quantity)

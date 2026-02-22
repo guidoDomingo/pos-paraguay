@@ -355,6 +355,85 @@
     </div>
     @endif
 
+    <!-- Modal de Selección de Precios -->
+    @if($showPriceSelectionModal && $selectedProduct)
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 99999; display: flex; align-items: center; justify-content: center;">
+        <div style="background: white; width: 90%; max-width: 500px; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #007bff; padding-bottom: 15px;">
+                <h4 style="color: #007bff; margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="bi bi-tag"></i>
+                    Seleccionar Precio
+                </h4>
+                <button wire:click="closePriceSelectionModal" style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 50%; cursor: pointer; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Información del Producto -->
+            <div style="text-align: center; margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 10px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                    @if($selectedProduct->hasImage())
+                        <img src="{{ $selectedProduct->getImageUrl('thumbnail') }}" alt="{{ $selectedProduct->name }}" 
+                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                    @endif
+                    <div>
+                        <h5 style="margin: 0; color: #333;">{{ $selectedProduct->name }}</h5>
+                        <small style="color: #6c757d;">Código: {{ $selectedProduct->code }}</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opciones de Precios -->
+            <div style="margin-bottom: 20px;">
+                <h6 style="margin-bottom: 15px; color: #333;">💰 Selecciona el precio a usar:</h6>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    @foreach($availablePrices as $index => $price)
+                    <button wire:click="selectPrice({{ $index }})" 
+                            style="background: #f8f9fa; border: 2px solid #007bff; padding: 15px; border-radius: 10px; cursor: pointer; text-align: left; transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center;"
+                            onmouseover="this.style.background='#e7f1ff'; this.style.transform='translateY(-2px)'"
+                            onmouseout="this.style.background='#f8f9fa'; this.style.transform='translateY(0)'">
+                        <div>
+                            <strong style="color: #007bff; font-size: 16px;">{{ $price['label'] }}</strong>
+                            <br>
+                            <small style="color: #6c757d;">
+                                @if($price['type'] === 'wholesale_price')
+                                    Ideal para ventas al por mayor
+                                @else
+                                    Precio estándar para venta minorista
+                                @endif
+                            </small>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 18px; font-weight: bold; color: #28a745;">
+                                ₲ {{ number_format($price['value'], 0, ',', '.') }}
+                            </span>
+                            @if($price['type'] === 'wholesale_price' && $price['value'] < $selectedProduct->sale_price)
+                                <br>
+                                <small style="color: #28a745;">
+                                    ⬇️ {{ number_format((($selectedProduct->sale_price - $price['value']) / $selectedProduct->sale_price) * 100, 0) }}% menos
+                                </small>
+                            @endif
+                        </div>
+                    </button>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Botón Cancelar -->
+            <div style="text-align: center;">
+                <button wire:click="closePriceSelectionModal" 
+                        style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                    <i class="bi bi-x-circle me-1"></i>
+                    Cancelar
+                </button>
+            </div>
+
+        </div>
+    </div>
+    @endif
+
     <!-- Flash Messages -->
     @if (session('message'))
         <div class="col-12">
@@ -494,7 +573,14 @@
                 @foreach($cart as $index => $item)
                 <div class="cart-item p-3 mb-2">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6 class="fw-semibold mb-1">{{ $item['product_name'] ?? $item['name'] ?? 'Producto' }}</h6>
+                        <div>
+                            <h6 class="fw-semibold mb-1">{{ $item['product_name'] ?? $item['name'] ?? 'Producto' }}</h6>
+                            @if(isset($item['price_label']) && $item['price_label'] !== 'Precio Venta')
+                                <small class="text-info fw-semibold">
+                                    <i class="bi bi-tag-fill"></i> {{ $item['price_label'] }}
+                                </small>
+                            @endif
+                        </div>
                         <button type="button" class="btn btn-sm btn-outline-danger" wire:click="removeFromCart({{ $index }})">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -505,7 +591,10 @@
                             <input type="number" class="form-control form-control-sm text-center" value="{{ $item['quantity'] }}" wire:change="updateQuantity({{ $index }}, $event.target.value)" min="1">
                             <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="updateQuantity({{ $index }}, {{ $item['quantity'] + 1 }})">+</button>
                         </div>
-                        <span class="fw-bold">₲ {{ number_format(($item['unit_price'] ?? $item['price'] ?? 0) * $item['quantity'], 0, ',', '.') }}</span>
+                        <div class="text-end">
+                            <div class="fw-bold">₲ {{ number_format(($item['unit_price'] ?? $item['price'] ?? 0) * $item['quantity'], 0, ',', '.') }}</div>
+                            <small class="text-muted">₲ {{ number_format($item['unit_price'] ?? $item['price'] ?? 0, 0, ',', '.') }} c/u</small>
+                        </div>
                     </div>
                 </div>
                 @endforeach
