@@ -36,6 +36,18 @@ class Invoice extends Model
         'observations',
         'is_printed',
         'printed_at',
+        // Campos de facturación electrónica FacturaSend
+        'is_electronic',
+        'facturasend_id',
+        'cdc',
+        'electronic_status',
+        'electronic_sent_at',
+        'electronic_approved_at',
+        'xml_data',
+        'qr_data',
+        'lote_id',
+        'electronic_error',
+        'numero_electronico',
     ];
 
     protected $casts = [
@@ -49,6 +61,10 @@ class Invoice extends Model
         'invoice_date' => 'date',
         'is_printed' => 'boolean',
         'printed_at' => 'datetime',
+        // Casts para facturación electrónica
+        'is_electronic' => 'boolean',
+        'electronic_sent_at' => 'datetime',
+        'electronic_approved_at' => 'datetime',
     ];
 
     public function company(): BelongsTo
@@ -117,5 +133,147 @@ class Invoice extends Model
             'is_printed' => true,
             'printed_at' => now(),
         ]);
+    }
+
+    // =====================================================
+    // MÉTODOS DE FACTURACIÓN ELECTRÓNICA FACTURASEND
+    // =====================================================
+
+    /**
+     * Verificar si la factura es electrónica
+     */
+    public function isElectronic(): bool
+    {
+        return $this->is_electronic;
+    }
+
+    /**
+     * Verificar si la factura electrónica está aprobada
+     */
+    public function isElectronicApproved(): bool
+    {
+        return $this->electronic_status === 'approved';
+    }
+
+    /**
+     * Verificar si la factura electrónica tiene error
+     */
+    public function hasElectronicError(): bool
+    {
+        return $this->electronic_status === 'error';
+    }
+
+    /**
+     * Obtener el estado de la factura electrónica en formato legible
+     */
+    public function getElectronicStatusText(): string
+    {
+        return match($this->electronic_status) {
+            'pending' => 'Pendiente',
+            'generated' => 'Generado',
+            'approved' => 'Aprobado por SET',
+            'rejected' => 'Rechazado por SET',
+            'error' => 'Error',
+            default => 'No definido'
+        };
+    }
+
+    /**
+     * Marcar como enviado a FacturaSend
+     */
+    public function markAsElectronicSent(string $loteId): void
+    {
+        $this->update([
+            'is_electronic' => true,
+            'electronic_status' => 'generated',
+            'electronic_sent_at' => now(),
+            'lote_id' => $loteId,
+        ]);
+    }
+
+    /**
+     * Marcar como aprobado por SET
+     */
+    public function markAsElectronicApproved(): void
+    {
+        $this->update([
+            'electronic_status' => 'approved',
+            'electronic_approved_at' => now(),
+        ]);
+    }
+
+    /**
+     * Marcar como rechazado por SET
+     */
+    public function markAsElectronicRejected(string $error): void
+    {
+        $this->update([
+            'electronic_status' => 'rejected',
+            'electronic_error' => $error,
+        ]);
+    }
+
+    /**
+     * Obtener URL del KuDE (representación impresa)
+     */
+    public function getKudeUrl(): ?string
+    {
+        if (!$this->cdc) {
+            return null;
+        }
+
+        // FacturaSend usa la misma URL para test y production
+        $baseUrl = 'https://api.facturasend.com.py';
+
+        return $baseUrl . '/' . config('facturasend.tenant_id') . '/de/kude/' . $this->cdc;
+    }
+
+    /**
+     * Verificar si puede enviarse como factura electrónica
+     */
+    public function canSendElectronic(): bool
+    {
+        // Debe tener cliente con RUC para facturación electrónica
+        if (!$this->customer || !$this->customer->ruc) {
+            return false;
+        }
+
+        // No debe estar ya enviada
+        if ($this->is_electronic) {
+            return false;
+        }
+
+        // Debe tener items
+        if ($this->items->isEmpty()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Scope para facturas electrónicas
+     */
+    public function scopeElectronic($query)
+    {
+        return $query->where('is_electronic', true);
+    }
+
+    /**
+     * Scope para facturas electrónicas pendientes
+     */
+    public function scopeElectronicPending($query)
+    {
+        return $query->where('is_electronic', true)
+                     ->where('electronic_status', 'pending');
+    }
+
+    /**
+     * Scope para facturas electrónicas aprobadas
+     */
+    public function scopeElectronicApproved($query)
+    {
+        return $query->where('is_electronic', true)
+                     ->where('electronic_status', 'approved');
     }
 }

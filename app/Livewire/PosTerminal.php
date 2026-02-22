@@ -8,7 +8,10 @@ use App\Models\SaleItem;
 use App\Models\Customer;
 use App\Models\CashRegister;
 use App\Models\StockMovement;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Services\InvoiceNumberService;
+use App\Services\FacturaSendService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +31,12 @@ class PosTerminal extends Component
     public $discount_amount = 0;
     public $cash_received = 0;
     public $notes = '';
+    
+    // Facturación electrónica FacturaSend
+    public $send_electronic = false; // Si enviar como factura electrónica
+    public $electronic_status = '';
+    public $electronic_error = '';
+    public $facturasend_enabled = false;
     
     // Calculados
     public $subtotal = 0;
@@ -58,12 +67,17 @@ class PosTerminal extends Component
         'sale_type' => 'required|in:TICKET,INVOICE',
         'document_type' => 'required|in:ticket,factura',
         'payment_method' => 'required|in:CASH,CARD,TRANSFER,CREDIT',
+        'send_electronic' => 'boolean',
     ];
 
     public function mount()
     {
         $this->reset();
         $this->calculateTotals();
+        
+        // Verificar si FacturaSend está habilitado
+        $this->facturasend_enabled = config('facturasend.enabled', false);
+        
         // Cargar algunos productos por defecto al inicializar
         $this->searchResults = Product::where('company_id', Auth::user()->company_id)
             ->where('is_active', true)
@@ -329,6 +343,17 @@ class PosTerminal extends Component
             return;
         }
 
+        // Validaciones para facturación electrónica
+        if ($this->send_electronic && !$this->facturasend_enabled) {
+            session()->flash('error', 'Facturación electrónica no está habilitada');
+            return;
+        }
+
+        if ($this->send_electronic && empty($this->customer_ruc)) {
+            session()->flash('error', 'RUC es requerido para facturación electrónica');
+            return;
+        }
+
         try {
             DB::beginTransaction();
 
@@ -378,6 +403,16 @@ class PosTerminal extends Component
                 }
             }
 
+            // Crear Invoice y procesar facturación electrónica si es necesario
+            if ($this->document_type === 'factura') {
+                $invoice = $this->createInvoiceFromSale($sale);
+                
+                // Enviar a FacturaSend si está habilitado
+                if ($this->send_electronic && $this->facturasend_enabled) {
+                    $this->processElectronicInvoice($invoice);
+                }
+            }
+
             DB::commit();
 
             session()->flash('success', 'Venta procesada exitosamente');
@@ -403,7 +438,7 @@ class PosTerminal extends Component
             );
             
             // Resetear formulario después de emitir el evento
-            $this->reset(['cart', 'customer_name', 'customer_ruc', 'customer_address', 'notes', 'cash_received', 'document_type']);
+            $this->reset(['cart', 'customer_name', 'customer_ruc', 'customer_address', 'notes', 'cash_received', 'document_type', 'send_electronic', 'electronic_status', 'electronic_error']);
             $this->document_type = 'ticket'; // Resetear a ticket por defecto
             $this->calculateTotals();
             $this->closePaymentModal();
@@ -411,6 +446,11 @@ class PosTerminal extends Component
         } catch (\Exception $e) {
             DB::rollBack();
             session()->flash('error', 'Error al procesar la venta: ' . $e->getMessage());
+            Log::error('Error procesando venta: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'cart' => $this->cart,
+                'error' => $e->getTraceAsString()
+            ]);
         }
     }
 
@@ -472,5 +512,144 @@ class PosTerminal extends Component
             ->get();
 
         return view('livewire.pos-terminal', compact('customers', 'products'));
+    }
+
+    // =====================================================
+    // MÉTODOS DE FACTURACIÓN ELECTRÓNICA FACTURASEND
+    // =====================================================
+
+    /**
+     * Crear Invoice desde Sale para facturación electrónica
+     */
+    private function createInvoiceFromSale(Sale $sale): Invoice
+    {
+        // Obtener próximo número de factura
+        $invoiceService = new InvoiceNumberService();
+        $invoiceNumber = $invoiceService->getNextInvoiceNumber(Auth::user()->company_id);
+
+        $invoice = Invoice::create([
+            'company_id' => $sale->company_id,
+            'sale_id' => $sale->id,
+            'customer_id' => $sale->customer_id,
+            'fiscal_stamp_id' => 1, // Usar timbrado por defecto
+            'invoice_number' => $invoiceNumber,
+            'stamp_number' => '', // Se llenará según el timbrado
+            'establishment' => Auth::user()->company->establishment ?? '001',
+            'point_of_sale' => Auth::user()->company->point_of_sale ?? '001',
+            'sequential_number' => $invoiceNumber,
+            'subtotal_exento' => $sale->subtotal,
+            'subtotal_iva_5' => 0,
+            'subtotal_iva_10' => 0,
+            'total_iva_5' => 0,
+            'total_iva_10' => 0,
+            'total_iva' => $sale->tax_amount,
+            'total_amount' => $sale->total_amount,
+            'customer_name' => $sale->customer_name,
+            'customer_ruc' => $sale->customer_document,
+            'customer_address' => $this->customer_address,
+            'condition' => $sale->payment_method === 'CREDIT' ? 'CREDITO' : 'CONTADO',
+            'invoice_date' => $sale->sale_date,
+            'observations' => $sale->notes,
+            'is_printed' => false,
+        ]);
+
+        // Crear InvoiceItems desde SaleItems
+        foreach ($sale->items as $saleItem) {
+            InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'product_id' => $saleItem->product_id,
+                'description' => $saleItem->product_name,
+                'quantity' => $saleItem->quantity,
+                'unit_price' => $saleItem->unit_price,
+                'total_price' => $saleItem->total_price,
+                'iva_type' => $saleItem->iva_type,
+                'iva_amount' => $saleItem->iva_amount,
+            ]);
+        }
+
+        // Calcular totales de la factura
+        $invoice->calculateTotals();
+
+        return $invoice;
+    }
+
+    /**
+     * Procesar factura electrónica con FacturaSend
+     */
+    private function processElectronicInvoice(Invoice $invoice): void
+    {
+        try {
+            $facturasendService = new FacturaSendService();
+            
+            // Enviar a FacturaSend
+            $result = $facturasendService->sendInvoice($invoice, false); // false = no es borrador
+            
+            if ($result['success']) {
+                $this->electronic_status = 'Enviado a FacturaSend exitosamente';
+                $this->electronic_error = '';
+                
+                session()->flash('success', 'Factura electrónica enviada exitosamente. CDC: ' . $result['cdc']);
+                Log::info('Factura electrónica enviada', [
+                    'invoice_id' => $invoice->id,
+                    'cdc' => $result['cdc']
+                ]);
+                
+            } else {
+                $this->electronic_status = 'Error al enviar';
+                $this->electronic_error = $result['error'];
+                
+                session()->flash('warning', 'Factura creada pero hubo error en envío electrónico: ' . $result['error']);
+                Log::error('Error enviando factura electrónica', [
+                    'invoice_id' => $invoice->id,
+                    'error' => $result['error']
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            $this->electronic_status = 'Error de conexión';
+            $this->electronic_error = $e->getMessage();
+            
+            session()->flash('warning', 'Factura creada pero hubo error de conexión con FacturaSend: ' . $e->getMessage());
+            Log::error('Excepción enviando factura electrónica', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Verificar si se puede enviar factura electrónica
+     */
+    public function canSendElectronic(): bool
+    {
+        return $this->facturasend_enabled && 
+               $this->document_type === 'factura' && 
+               !empty($this->customer_ruc);
+    }
+
+    /**
+     * Toggle para activar/desactivar envío electrónico
+     */
+    public function toggleElectronic()
+    {
+        if (!$this->facturasend_enabled) {
+            session()->flash('error', 'Facturación electrónica no está habilitada');
+            $this->send_electronic = false;
+            return;
+        }
+
+        if ($this->document_type !== 'factura') {
+            session()->flash('error', 'Solo se puede enviar facturas como documentos electrónicos');
+            $this->send_electronic = false;
+            return;
+        }
+
+        if (empty($this->customer_ruc)) {
+            session()->flash('error', 'RUC es requerido para facturación electrónica');
+            $this->send_electronic = false;
+            return;
+        }
+
+        $this->send_electronic = !$this->send_electronic;
     }
 }
