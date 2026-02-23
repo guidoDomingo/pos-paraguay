@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\FiscalStampController;
 use App\Http\Controllers\InventoryController;
 use Illuminate\Support\Facades\Route;
@@ -56,8 +57,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/sales/{sale}', [SalesController::class, 'show'])->name('sales.show');
     Route::get('/sales-reports', [SalesController::class, 'reports'])->name('sales.reports');
     
+    // Payments for credit sales
+    Route::post('/sales/{sale}/payments', [PaymentController::class, 'store'])->name('payments.store');
+    
     // Fiscal Stamps
-    Route::resource('fiscal-stamps', FiscalStampController::class)->except(['edit', 'update', 'destroy']);
+    Route::resource('fiscal-stamps', FiscalStampController::class);
     
     // Invoices
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');

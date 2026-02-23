@@ -99,6 +99,7 @@ class Invoice extends Model
         $subtotalIva10 = 0;
         $totalIva5 = 0;
         $totalIva10 = 0;
+        $totalConIva = 0;
 
         foreach ($this->items as $item) {
             switch ($item->iva_type) {
@@ -106,14 +107,19 @@ class Invoice extends Model
                     $subtotalExento += $item->total_price;
                     break;
                 case 'IVA_5':
-                    $subtotalIva5 += $item->total_price;
+                    // El total_price incluye el IVA, calculamos la base imponible
+                    $baseImponible = $item->total_price - $item->iva_amount;
+                    $subtotalIva5 += $baseImponible;
                     $totalIva5 += $item->iva_amount;
                     break;
                 case 'IVA_10':
-                    $subtotalIva10 += $item->total_price;
+                    // El total_price incluye el IVA, calculamos la base imponible
+                    $baseImponible = $item->total_price - $item->iva_amount;
+                    $subtotalIva10 += $baseImponible;
                     $totalIva10 += $item->iva_amount;
                     break;
             }
+            $totalConIva += $item->total_price;
         }
 
         $this->update([
@@ -123,7 +129,7 @@ class Invoice extends Model
             'total_iva_5' => $totalIva5,
             'total_iva_10' => $totalIva10,
             'total_iva' => $totalIva5 + $totalIva10,
-            'total_amount' => $subtotalExento + $subtotalIva5 + $subtotalIva10 + $totalIva5 + $totalIva10,
+            'total_amount' => $totalConIva,
         ]);
     }
 

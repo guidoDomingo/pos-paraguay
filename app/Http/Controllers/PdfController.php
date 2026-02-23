@@ -11,17 +11,20 @@ class PdfController extends Controller
 {
     public function generateInvoice($saleId)
     {
-        $sale = Sale::with('items')->findOrFail($saleId);
+        $sale = Sale::with(['items', 'invoice.fiscalStamp', 'company', 'user'])->findOrFail($saleId);
         $settings = InvoiceSetting::getSettings();
         
-        // Actualizar número de factura
-        $invoiceNumber = $settings->getNextInvoiceNumber();
-        $sale->update(['invoice_number' => $invoiceNumber]);
+        // Obtener la factura asociada
+        $invoice = $sale->invoice;
+        
+        if (!$invoice) {
+            abort(404, 'No se encontró la factura asociada a esta venta');
+        }
 
-        $pdf = Pdf::loadView('pdf.invoice', compact('sale', 'settings'))
+        $pdf = Pdf::loadView('pdf.invoice', compact('sale', 'invoice', 'settings'))
             ->setPaper($settings->paper_size === 'Ticket' ? [0, 0, 226.77, 841.89] : $settings->paper_size, $settings->orientation);
 
-        return $pdf->download('factura_' . $invoiceNumber . '.pdf');
+        return $pdf->download('factura_' . $invoice->invoice_number . '.pdf');
     }
 
     public function generateTicket($saleId)
@@ -45,10 +48,17 @@ class PdfController extends Controller
 
     public function previewInvoice($saleId)
     {
-        $sale = Sale::with('items')->findOrFail($saleId);
+        $sale = Sale::with(['items', 'invoice.fiscalStamp', 'company', 'user'])->findOrFail($saleId);
         $settings = InvoiceSetting::getSettings();
         
-        return view('pdf.invoice', compact('sale', 'settings'));
+        // Obtener la factura asociada
+        $invoice = $sale->invoice;
+        
+        if (!$invoice) {
+            abort(404, 'No se encontró la factura asociada a esta venta');
+        }
+        
+        return view('pdf.invoice', compact('sale', 'invoice', 'settings'));
     }
 
     public function previewTicket($saleId)

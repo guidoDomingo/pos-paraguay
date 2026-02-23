@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factura #{{ $invoice->invoice_number }}</title>
+    <title>Factura #<?php echo e($invoice->invoice_number); ?></title>
     <style>
         * {
             margin: 0;
@@ -145,48 +145,50 @@
     <div class="invoice-container">
         <!-- Header with Company Info -->
         <div class="header">
-            <div class="company-name">{{ $sale->company->name ?? $settings->company_name }}</div>
+            <div class="company-name"><?php echo e($sale->company->name ?? $settings->company_name); ?></div>
             <div class="company-info">
-                <strong>RUC:</strong> {{ $sale->company->ruc ?? $settings->company_ruc }}
+                <strong>RUC:</strong> <?php echo e($sale->company->ruc ?? $settings->company_ruc); ?>
+
             </div>
-            @if($sale->company->address ?? $settings->company_address)
-                <div class="company-info">{{ $sale->company->address ?? $settings->company_address }}</div>
-            @endif
-            @if($sale->company->phone ?? $settings->company_phone)
-                <div class="company-info">Tel: {{ $sale->company->phone ?? $settings->company_phone }}</div>
-            @endif
-            @if($sale->company->economic_activity ?? $settings->company_activity)
-                <div class="company-info">{{ $sale->company->economic_activity ?? $settings->company_activity }}</div>
-            @endif
+            <?php if($sale->company->address ?? $settings->company_address): ?>
+                <div class="company-info"><?php echo e($sale->company->address ?? $settings->company_address); ?></div>
+            <?php endif; ?>
+            <?php if($sale->company->phone ?? $settings->company_phone): ?>
+                <div class="company-info">Tel: <?php echo e($sale->company->phone ?? $settings->company_phone); ?></div>
+            <?php endif; ?>
+            <?php if($sale->company->economic_activity ?? $settings->company_activity): ?>
+                <div class="company-info"><?php echo e($sale->company->economic_activity ?? $settings->company_activity); ?></div>
+            <?php endif; ?>
         </div>
 
         <!-- Invoice Title -->
         <div class="invoice-title">FACTURA</div>
 
         <!-- Fiscal Stamp Information -->
-        @if($invoice->fiscalStamp)
+        <?php if($invoice->fiscalStamp): ?>
         <div class="stamp-box">
             <div style="font-weight: bold; font-size: 10px;">TIMBRADO</div>
-            <div class="stamp-number">{{ $invoice->fiscalStamp->stamp_number }}</div>
+            <div class="stamp-number"><?php echo e($invoice->fiscalStamp->stamp_number); ?></div>
             <div class="stamp-dates">
-                Validez: {{ $invoice->fiscalStamp->valid_from->format('d/m/Y') }} al {{ $invoice->fiscalStamp->valid_until->format('d/m/Y') }}
+                Validez: <?php echo e($invoice->fiscalStamp->valid_from->format('d/m/Y')); ?> al <?php echo e($invoice->fiscalStamp->valid_until->format('d/m/Y')); ?>
+
             </div>
         </div>
-        @endif
+        <?php endif; ?>
 
         <!-- Invoice Number -->
         <div class="fiscal-info">
             <div class="fiscal-info-row">
                 <strong>Nº Factura:</strong>
-                <span style="font-weight: bold; font-size: 12px;">{{ $invoice->invoice_number }}</span>
+                <span style="font-weight: bold; font-size: 12px;"><?php echo e($invoice->invoice_number); ?></span>
             </div>
             <div class="fiscal-info-row">
                 <strong>Fecha:</strong>
-                <span>{{ $invoice->invoice_date->format('d/m/Y H:i') }}</span>
+                <span><?php echo e($invoice->invoice_date->format('d/m/Y H:i')); ?></span>
             </div>
             <div class="fiscal-info-row">
                 <strong>Condición de Venta:</strong>
-                <span>{{ strtoupper($invoice->condition) }}</span>
+                <span><?php echo e(strtoupper($invoice->condition)); ?></span>
             </div>
         </div>
 
@@ -194,18 +196,21 @@
         <div class="section-title">DATOS DEL CLIENTE</div>
         <div style="padding: 5px 0;">
             <div class="info-row">
-                <strong>Nombre:</strong> {{ $invoice->customer_name ?? 'CONTRIBUYENTE GENERAL' }}
+                <strong>Nombre:</strong> <?php echo e($invoice->customer_name ?? 'CONTRIBUYENTE GENERAL'); ?>
+
             </div>
-            @if($invoice->customer_ruc)
+            <?php if($invoice->customer_ruc): ?>
             <div class="info-row">
-                <strong>RUC/CI:</strong> {{ $invoice->customer_ruc }}
+                <strong>RUC/CI:</strong> <?php echo e($invoice->customer_ruc); ?>
+
             </div>
-            @endif
-            @if($invoice->customer_address)
+            <?php endif; ?>
+            <?php if($invoice->customer_address): ?>
             <div class="info-row">
-                <strong>Dirección:</strong> {{ $invoice->customer_address }}
+                <strong>Dirección:</strong> <?php echo e($invoice->customer_address); ?>
+
             </div>
-            @endif
+            <?php endif; ?>
         </div>
 
         <!-- Items Detail -->
@@ -221,116 +226,118 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($invoice->items as $item)
+                <?php $__currentLoopData = $invoice->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <tr>
-                    <td class="text-center">{{ number_format($item->quantity, 0) }}</td>
-                    <td>{{ $item->product_name }}</td>
-                    <td class="text-right">{{ number_format($item->unit_price, 0, ',', '.') }}</td>
+                    <td class="text-center"><?php echo e(number_format($item->quantity, 0)); ?></td>
+                    <td><?php echo e($item->product_name); ?></td>
+                    <td class="text-right"><?php echo e(number_format($item->unit_price, 0, ',', '.')); ?></td>
                     <td class="text-center">
-                        @if($item->iva_type === 'IVA_10')
+                        <?php if($item->iva_type === 'IVA_10'): ?>
                             10%
-                        @elseif($item->iva_type === 'IVA_5')
+                        <?php elseif($item->iva_type === 'IVA_5'): ?>
                             5%
-                        @else
+                        <?php else: ?>
                             EXENTO
-                        @endif
+                        <?php endif; ?>
                     </td>
-                    <td class="text-right">{{ number_format($item->total_price, 0, ',', '.') }}</td>
+                    <td class="text-right"><?php echo e(number_format($item->total_price, 0, ',', '.')); ?></td>
                 </tr>
-                @endforeach
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </tbody>
         </table>
 
         <!-- Totals Section - Formato Paraguayo -->
         <div class="totals-section">
-            @if($invoice->subtotal_exento > 0)
+            <?php if($invoice->subtotal_exento > 0): ?>
             <div class="totals-row">
                 <span>TOTAL EXENTA</span>
-                <span>{{ number_format($invoice->subtotal_exento, 0, ',', '.') }}</span>
+                <span><?php echo e(number_format($invoice->subtotal_exento, 0, ',', '.')); ?></span>
             </div>
-            @endif
+            <?php endif; ?>
             
-            @if($invoice->subtotal_iva_5 > 0 || $invoice->total_iva_5 > 0)
+            <?php if($invoice->subtotal_iva_5 > 0 || $invoice->total_iva_5 > 0): ?>
             <div class="totals-row">
                 <span>TOTAL GRAV. 5%</span>
-                <span>{{ number_format($invoice->subtotal_iva_5 + $invoice->total_iva_5, 0, ',', '.') }}</span>
+                <span><?php echo e(number_format($invoice->subtotal_iva_5 + $invoice->total_iva_5, 0, ',', '.')); ?></span>
             </div>
-            @endif
+            <?php endif; ?>
             
-            @if($invoice->subtotal_iva_10 > 0 || $invoice->total_iva_10 > 0)
+            <?php if($invoice->subtotal_iva_10 > 0 || $invoice->total_iva_10 > 0): ?>
             <div class="totals-row">
                 <span>TOTAL GRAV. 10%</span>
-                <span>{{ number_format($invoice->subtotal_iva_10 + $invoice->total_iva_10, 0, ',', '.') }}</span>
+                <span><?php echo e(number_format($invoice->subtotal_iva_10 + $invoice->total_iva_10, 0, ',', '.')); ?></span>
             </div>
-            @endif
+            <?php endif; ?>
             
-            @if($invoice->total_iva_5 > 0)
+            <?php if($invoice->total_iva_5 > 0): ?>
             <div class="totals-row">
                 <span>LIQ. I.V.A. 5%</span>
-                <span>{{ number_format($invoice->total_iva_5, 0, ',', '.') }}</span>
+                <span><?php echo e(number_format($invoice->total_iva_5, 0, ',', '.')); ?></span>
             </div>
-            @endif
+            <?php endif; ?>
             
-            @if($invoice->total_iva_10 > 0)
+            <?php if($invoice->total_iva_10 > 0): ?>
             <div class="totals-row">
                 <span>LIQ. I.V.A. 10%</span>
-                <span>{{ number_format($invoice->total_iva_10, 0, ',', '.') }}</span>
+                <span><?php echo e(number_format($invoice->total_iva_10, 0, ',', '.')); ?></span>
             </div>
-            @endif
+            <?php endif; ?>
             
-            @if($invoice->total_iva > 0)
+            <?php if($invoice->total_iva > 0): ?>
             <div class="totals-row">
                 <span><strong>TOTAL LIQ. I.V.A.</strong></span>
-                <span><strong>{{ number_format($invoice->total_iva, 0, ',', '.') }}</strong></span>
+                <span><strong><?php echo e(number_format($invoice->total_iva, 0, ',', '.')); ?></strong></span>
             </div>
-            @endif
+            <?php endif; ?>
             
             <div style="border-top: 2px dashed #000; margin: 8px 0;"></div>
             
-            @if($sale->payment_method === 'CASH' && $sale->amount_paid > 0)
+            <?php if($sale->payment_method === 'CASH' && $sale->amount_paid > 0): ?>
             <div class="totals-row">
                 <span>RECIBIDO</span>
-                <span>{{ number_format($sale->amount_paid, 0, ',', '.') }}</span>
+                <span><?php echo e(number_format($sale->amount_paid, 0, ',', '.')); ?></span>
             </div>
             <div class="totals-row">
                 <span>VUELTO</span>
-                <span>{{ number_format($sale->change_amount, 0, ',', '.') }}</span>
+                <span><?php echo e(number_format($sale->change_amount, 0, ',', '.')); ?></span>
             </div>
             <div style="border-top: 2px dashed #000; margin: 8px 0;"></div>
-            @endif
+            <?php endif; ?>
             
             <div class="totals-row total-final">
                 <span>TOTAL</span>
-                <span>{{ number_format($invoice->total_amount, 0, ',', '.') }}</span>
+                <span><?php echo e(number_format($invoice->total_amount, 0, ',', '.')); ?></span>
             </div>
         </div>
 
         <!-- Payment Method -->
-        @if($sale->payment_method)
+        <?php if($sale->payment_method): ?>
         <div style="margin-top: 10px; font-size: 10px; text-align: center;">
             <strong>Forma de Pago:</strong> 
-            {{ $sale->payment_method === 'CASH' ? 'Efectivo' : ($sale->payment_method === 'CARD' ? 'Tarjeta' : 'Transferencia') }}
+            <?php echo e($sale->payment_method === 'CASH' ? 'Efectivo' : ($sale->payment_method === 'CARD' ? 'Tarjeta' : 'Transferencia')); ?>
+
         </div>
-        @endif
+        <?php endif; ?>
 
         <!-- Observations -->
-        @if($invoice->observations)
+        <?php if($invoice->observations): ?>
         <div style="margin-top: 10px; font-size: 9px;">
-            <strong>Observaciones:</strong> {{ $invoice->observations }}
+            <strong>Observaciones:</strong> <?php echo e($invoice->observations); ?>
+
         </div>
-        @endif
+        <?php endif; ?>
 
         <!-- Footer -->
         <div class="footer">
             <div>Original: Cliente | Duplicado: Emisor</div>
-            @if($settings->footer_text)
-                <div style="margin-top: 5px;">{{ $settings->footer_text }}</div>
-            @endif
-            <div style="margin-top: 5px;">Impreso: {{ now()->format('d/m/Y H:i:s') }}</div>
-            @if($sale->user)
-                <div>Cajero: {{ $sale->user->name }}</div>
-            @endif
+            <?php if($settings->footer_text): ?>
+                <div style="margin-top: 5px;"><?php echo e($settings->footer_text); ?></div>
+            <?php endif; ?>
+            <div style="margin-top: 5px;">Impreso: <?php echo e(now()->format('d/m/Y H:i:s')); ?></div>
+            <?php if($sale->user): ?>
+                <div>Cajero: <?php echo e($sale->user->name); ?></div>
+            <?php endif; ?>
         </div>
     </div>
 </body>
-</html>
+</html><?php /**PATH C:\laragon\www\bodega-app\resources\views/pdf/invoice.blade.php ENDPATH**/ ?>

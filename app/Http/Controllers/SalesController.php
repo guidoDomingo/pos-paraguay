@@ -38,9 +38,27 @@ class SalesController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $sales = $query->orderBy('created_at', 'desc')->paginate(20);
+        // Filtro por condición de venta
+        if ($request->filled('sale_condition')) {
+            $query->where('sale_condition', $request->sale_condition);
+        }
+
+        // Filtro solo ventas con saldo pendiente
+        if ($request->has('pending_balance') && $request->pending_balance == '1') {
+            $query->where('balance_due', '>', 0);
+        }
+
+        $sales = $query->orderBy('created_at', 'desc')->paginate(20)->appends($request->all());
+        
+        // Estadísticas de ventas a crédito
+        $creditStats = Sale::where('company_id', $companyId)
+            ->where('sale_condition', 'CREDITO')
+            ->selectRaw('COUNT(*) as total_credit_sales')
+            ->selectRaw('SUM(balance_due) as total_balance_due')
+            ->selectRaw('SUM(amount_paid) as total_collected')
+            ->first();
             
-        return view('sales.index', compact('sales'));
+        return view('sales.index', compact('sales', 'creditStats'));
     }
     
     public function show(Sale $sale)
@@ -50,7 +68,7 @@ class SalesController extends Controller
             abort(403);
         }
         
-        $sale->load(['user', 'saleItems.product', 'invoice']);
+        $sale->load(['user', 'saleItems.product', 'invoice', 'payments.user']);
         return view('sales.show', compact('sale'));
     }
     

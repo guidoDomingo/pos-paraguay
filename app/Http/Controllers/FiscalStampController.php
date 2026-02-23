@@ -25,22 +25,91 @@ class FiscalStampController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'stamp_number' => 'required|string|unique:fiscal_stamps,stamp_number',
-            'expiry_date' => 'required|date|after:today',
-            'invoice_range_start' => 'required|integer|min:1',
-            'invoice_range_end' => 'required|integer|gt:invoice_range_start'
+            'stamp_number' => 'required|string|max:20|unique:fiscal_stamps,stamp_number',
+            'valid_from' => 'required|date',
+            'valid_until' => 'required|date|after:valid_from',
+            'establishment' => 'required|string|size:3',
+            'point_of_sale' => 'required|string|size:3',
+            'current_invoice_number' => 'required|integer|min:0',
+            'max_invoice_number' => 'required|integer|min:1|gt:current_invoice_number',
         ]);
         
-        FiscalStamp::create(array_merge($request->all(), [
+        FiscalStamp::create([
             'company_id' => Auth::user()->company_id,
-            'is_active' => true
-        ]));
+            'stamp_number' => $request->stamp_number,
+            'valid_from' => $request->valid_from,
+            'valid_until' => $request->valid_until,
+            'establishment' => $request->establishment,
+            'point_of_sale' => $request->point_of_sale,
+            'current_invoice_number' => $request->current_invoice_number,
+            'max_invoice_number' => $request->max_invoice_number,
+            'is_active' => $request->has('is_active') ? true : false,
+        ]);
         
-        return redirect()->route('fiscal-stamps.index')->with('success', 'Timbre fiscal creado exitosamente');
+        return redirect()->route('fiscal-stamps.index')->with('success', 'Timbrado fiscal creado exitosamente');
     }
     
     public function show(FiscalStamp $fiscalStamp)
     {
         return view('fiscal-stamps.show', compact('fiscalStamp'));
+    }
+    
+    public function edit(FiscalStamp $fiscalStamp)
+    {
+        // Verificar que el timbrado pertenece a la compañía del usuario
+        if ($fiscalStamp->company_id !== Auth::user()->company_id) {
+            abort(403);
+        }
+        
+        return view('fiscal-stamps.edit', compact('fiscalStamp'));
+    }
+    
+    public function update(Request $request, FiscalStamp $fiscalStamp)
+    {
+        // Verificar que el timbrado pertenece a la compañía del usuario
+        if ($fiscalStamp->company_id !== Auth::user()->company_id) {
+            abort(403);
+        }
+        
+        $request->validate([
+            'stamp_number' => 'required|string|max:20|unique:fiscal_stamps,stamp_number,' . $fiscalStamp->id,
+            'valid_from' => 'required|date',
+            'valid_until' => 'required|date|after:valid_from',
+            'establishment' => 'required|string|size:3',
+            'point_of_sale' => 'required|string|size:3',
+            'current_invoice_number' => 'required|integer|min:0',
+            'max_invoice_number' => 'required|integer|min:1|gt:current_invoice_number',
+        ]);
+        
+        $fiscalStamp->update([
+            'stamp_number' => $request->stamp_number,
+            'valid_from' => $request->valid_from,
+            'valid_until' => $request->valid_until,
+            'establishment' => $request->establishment,
+            'point_of_sale' => $request->point_of_sale,
+            'current_invoice_number' => $request->current_invoice_number,
+            'max_invoice_number' => $request->max_invoice_number,
+            'is_active' => $request->has('is_active') ? true : false,
+        ]);
+        
+        return redirect()->route('fiscal-stamps.index')->with('success', 'Timbrado fiscal actualizado exitosamente');
+    }
+    
+    public function destroy(FiscalStamp $fiscalStamp)
+    {
+        // Verificar que el timbrado pertenece a la compañía del usuario
+        if ($fiscalStamp->company_id !== Auth::user()->company_id) {
+            abort(403);
+        }
+        
+        // Verificar si el timbrado tiene facturas asociadas
+        if ($fiscalStamp->invoices()->exists()) {
+            return redirect()->route('fiscal-stamps.index')
+                ->with('error', 'No se puede eliminar el timbrado porque tiene facturas asociadas');
+        }
+        
+        $fiscalStamp->delete();
+        
+        return redirect()->route('fiscal-stamps.index')->with('success', 'Timbrado fiscal eliminado exitosamente');
     }
 }

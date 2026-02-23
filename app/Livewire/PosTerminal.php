@@ -27,9 +27,12 @@ class PosTerminal extends Component
     public $customer_address = '';
     public $payment_method = 'CASH';
     public $sale_type = 'TICKET'; // TICKET o INVOICE
+    public $sale_condition = 'CONTADO'; // CONTADO o CREDITO
     public $document_type = 'ticket'; // ticket o factura
     public $discount_amount = 0;
     public $cash_received = 0;
+    public $amount_paid = 0.00; // Monto abonado (para crédito)
+    public $balance_due = 0.00; // Saldo pendiente (para crédito)
     public $notes = '';
     
     // Facturación electrónica FacturaSend
@@ -128,6 +131,27 @@ class PosTerminal extends Component
 
     public function updatedDiscountAmount()
     {
+        $this->calculateTotals();
+    }
+
+    public function updatedAmountPaid()
+    {
+        // Asegurar que sea un número válido, mantener vacío si está vacío
+        if ($this->amount_paid === '' || $this->amount_paid === null) {
+            $this->amount_paid = 0;
+        } else {
+            $this->amount_paid = is_numeric($this->amount_paid) ? (float) $this->amount_paid : 0;
+        }
+        $this->calculateTotals();
+    }
+
+    public function updatedSaleCondition()
+    {
+        // Resetear amount_paid cuando cambia la condición
+        if ($this->sale_condition === 'CONTADO') {
+            $this->amount_paid = 0;
+            $this->balance_due = 0;
+        }
         $this->calculateTotals();
     }
     
@@ -277,9 +301,13 @@ class PosTerminal extends Component
             $item['total_price'] = $itemTotal;
             $this->subtotal += $itemTotal;
             
-            // Calcular IVA
-            if ($item['iva_type'] !== 'EXENTO') {
-                $ivaAmount = ($itemTotal * $item['iva_rate']) / (100 + $item['iva_rate']);
+            // Calcular IVA (método paraguayo: total/11 para 10%, total/21 para 5%)
+            if ($item['iva_type'] === 'IVA_10') {
+                $ivaAmount = $itemTotal / 11;
+                $item['iva_amount'] = $ivaAmount;
+                $this->tax_amount += $ivaAmount;
+            } elseif ($item['iva_type'] === 'IVA_5') {
+                $ivaAmount = $itemTotal / 21;
                 $item['iva_amount'] = $ivaAmount;
                 $this->tax_amount += $ivaAmount;
             } else {
@@ -289,9 +317,20 @@ class PosTerminal extends Component
 
         $this->total_amount = $this->subtotal - (float) $this->discount_amount;
         
-        // Asegurar que cash_received sea numérico antes de calcular
-        $cashReceived = (float) $this->cash_received;
-        $this->change_amount = max(0, $cashReceived - $this->total_amount);
+        // Calcular balance_due si es venta a crédito
+        if ($this->sale_condition === 'CREDITO') {
+            $this->balance_due = max(0, $this->total_amount - $this->amount_paid);
+        } else {
+            $this->balance_due = 0;
+        }
+        
+        // Calcular cambio si es efectivo de contado
+        if ($this->payment_method === 'CASH' && $this->sale_condition === 'CONTADO') {
+            $cashReceived = (float) $this->cash_received;
+            $this->change_amount = max(0, $cashReceived - $this->total_amount);
+        } else {
+            $this->change_amount = 0;
+        }
     }
 
     public function openCustomerModal()
@@ -371,13 +410,20 @@ class PosTerminal extends Component
             return;
         }
 
-        if ($this->payment_method === 'CASH' && $this->cash_received < $this->total_amount) {
+        // Validación de efectivo solo si es pago de contado con efectivo
+        if ($this->payment_method === 'CASH' && $this->sale_condition === 'CONTADO' && $this->cash_received < $this->total_amount) {
             session()->flash('error', 'Efectivo insuficiente');
             return;
         }
 
         if ($this->document_type === 'factura' && empty($this->customer_name)) {
             session()->flash('error', 'Debe ingresar el nombre del cliente para factura');
+            return;
+        }
+
+        // Validar que el monto abonado no sea mayor al total en venta a crédito
+        if ($this->sale_condition === 'CREDITO' && $this->amount_paid > $this->total_amount) {
+            session()->flash('error', 'El monto abonado no puede ser mayor al total');
             return;
         }
 
@@ -392,8 +438,49 @@ class PosTerminal extends Component
             return;
         }
 
+        // Validar que existe un timbrado fiscal activo si se va a emitir factura
+        if ($this->document_type === 'factura') {
+            $invoiceService = new InvoiceNumberService();
+            $fiscalStamp = $invoiceService->getActiveFiscalStamp(Auth::user()->company_id);
+            
+            if (!$fiscalStamp) {
+                session()->flash('error', 'No hay timbrado fiscal activo. Por favor configure un timbrado fiscal antes de emitir facturas.');
+                return;
+            }
+
+            // Validar que el timbrado sea válido (errores bloqueantes)
+            $validationErrors = $invoiceService->validateFiscalStamp($fiscalStamp);
+            if (!empty($validationErrors)) {
+                session()->flash('error', 'Timbrado fiscal inválido: ' . implode(', ', $validationErrors));
+                return;
+            }
+
+            // Obtener advertencias (no bloqueantes) y registrarlas
+            $warnings = $invoiceService->getFiscalStampWarnings($fiscalStamp);
+            if (!empty($warnings)) {
+                Log::warning('Advertencias del timbrado fiscal', [
+                    'fiscal_stamp_id' => $fiscalStamp->id,
+                    'warnings' => $warnings,
+                    'user_id' => Auth::id()
+                ]);
+                // Opcional: mostrar advertencia al usuario pero permitir continuar
+                // session()->flash('warning', implode(', ', $warnings));
+            }
+        }
+
         try {
             DB::beginTransaction();
+
+            // Calcular montos para venta a crédito
+            $amountPaid = $this->sale_condition === 'CREDITO' ? $this->amount_paid : $this->total_amount;
+            $balanceDue = $this->sale_condition === 'CREDITO' ? ($this->total_amount - $this->amount_paid) : 0;
+            $changeAmount = 0;
+            
+            // Si es efectivo y pago de contado, calcular vuelto
+            if ($this->payment_method === 'CASH' && $this->sale_condition === 'CONTADO') {
+                $changeAmount = $this->cash_received - $this->total_amount;
+                $amountPaid = $this->cash_received;
+            }
 
             // Crear venta
             $sale = Sale::create([
@@ -411,10 +498,12 @@ class PosTerminal extends Component
                 'discount_amount' => $this->discount_amount,
                 'total_amount' => $this->total_amount,
                 'payment_method' => $this->payment_method,
-                'amount_paid' => $this->cash_received,
-                'change_amount' => $this->change_amount,
+                'sale_condition' => $this->sale_condition,
+                'amount_paid' => $amountPaid,
+                'change_amount' => $changeAmount,
+                'balance_due' => $balanceDue,
                 'notes' => $this->notes,
-                'status' => 'COMPLETED',
+                'status' => $this->sale_condition === 'CREDITO' ? 'PENDING' : 'COMPLETED',
                 'sale_date' => now(),
             ]);
 
@@ -442,7 +531,8 @@ class PosTerminal extends Component
             }
 
             // Crear Invoice y procesar facturación electrónica si es necesario
-            if ($this->document_type === 'factura') {
+            // Solo se genera factura si el pago está completado (CONTADO o crédito pagado)
+            if ($this->document_type === 'factura' && $this->sale_condition === 'CONTADO') {
                 $invoice = $this->createInvoiceFromSale($sale);
                 
                 // Enviar a FacturaSend si está habilitado
@@ -453,7 +543,11 @@ class PosTerminal extends Component
 
             DB::commit();
 
-            session()->flash('success', 'Venta procesada exitosamente');
+            $successMessage = $this->sale_condition === 'CREDITO' 
+                ? 'Venta a crédito registrada. Estado: PENDIENTE. Complete el pago para generar factura.' 
+                : 'Venta procesada exitosamente';
+            
+            session()->flash('success', $successMessage);
             
             // Configurar datos para el modal de impresión
             $this->lastSaleId = $sale->id;
@@ -483,10 +577,20 @@ class PosTerminal extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al procesar la venta: ' . $e->getMessage());
+            
+            // Mensajes de error más específicos
+            $errorMessage = $e->getMessage();
+            
+            if (str_contains($errorMessage, 'timbrado fiscal')) {
+                session()->flash('error', $errorMessage);
+            } else {
+                session()->flash('error', 'Error al procesar la venta: ' . $errorMessage);
+            }
+            
             Log::error('Error procesando venta: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'cart' => $this->cart,
+                'document_type' => $this->document_type,
                 'error' => $e->getTraceAsString()
             ]);
         }
@@ -561,20 +665,38 @@ class PosTerminal extends Component
      */
     private function createInvoiceFromSale(Sale $sale): Invoice
     {
-        // Obtener próximo número de factura
+        // Verificar que la venta tiene ID
+        if (!$sale->id) {
+            throw new \Exception('La venta no se guardó correctamente');
+        }
+
+        // Obtener timbrado fiscal activo
         $invoiceService = new InvoiceNumberService();
-        $invoiceNumber = $invoiceService->getNextInvoiceNumber(Auth::user()->company_id);
+        $fiscalStamp = $invoiceService->getActiveFiscalStamp(Auth::user()->company_id);
+        
+        if (!$fiscalStamp) {
+            throw new \Exception('No hay timbrado fiscal activo. Por favor configure un timbrado fiscal antes de emitir facturas.');
+        }
+
+        // Validar que el timbrado sea válido
+        $validationErrors = $invoiceService->validateFiscalStamp($fiscalStamp);
+        if (!empty($validationErrors)) {
+            throw new \Exception('Timbrado fiscal inválido: ' . implode(', ', $validationErrors));
+        }
+
+        // Obtener próximo número de factura
+        $invoiceNumber = $fiscalStamp->getNextInvoiceNumber();
 
         $invoice = Invoice::create([
             'company_id' => $sale->company_id,
             'sale_id' => $sale->id,
             'customer_id' => $sale->customer_id,
-            'fiscal_stamp_id' => 1, // Usar timbrado por defecto
+            'fiscal_stamp_id' => $fiscalStamp->id,
             'invoice_number' => $invoiceNumber,
-            'stamp_number' => '', // Se llenará según el timbrado
-            'establishment' => Auth::user()->company->establishment ?? '001',
-            'point_of_sale' => Auth::user()->company->point_of_sale ?? '001',
-            'sequential_number' => $invoiceNumber,
+            'stamp_number' => $fiscalStamp->stamp_number,
+            'establishment' => $fiscalStamp->establishment,
+            'point_of_sale' => $fiscalStamp->point_of_sale,
+            'sequential_number' => $fiscalStamp->current_invoice_number,
             'subtotal_exento' => $sale->subtotal,
             'subtotal_iva_5' => 0,
             'subtotal_iva_10' => 0,
@@ -585,7 +707,7 @@ class PosTerminal extends Component
             'customer_name' => $sale->customer_name,
             'customer_ruc' => $sale->customer_document,
             'customer_address' => $this->customer_address,
-            'condition' => $sale->payment_method === 'CREDIT' ? 'CREDITO' : 'CONTADO',
+            'condition' => 'CONTADO',
             'invoice_date' => $sale->sale_date,
             'observations' => $sale->notes,
             'is_printed' => false,
@@ -596,7 +718,8 @@ class PosTerminal extends Component
             InvoiceItem::create([
                 'invoice_id' => $invoice->id,
                 'product_id' => $saleItem->product_id,
-                'description' => $saleItem->product_name,
+                'product_code' => $saleItem->product_code ?? '',
+                'product_name' => $saleItem->product_name,
                 'quantity' => $saleItem->quantity,
                 'unit_price' => $saleItem->unit_price,
                 'total_price' => $saleItem->total_price,

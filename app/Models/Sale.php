@@ -31,8 +31,10 @@ class Sale extends Model
         'discount_amount',
         'total_amount',
         'payment_method',
+        'sale_condition',
         'amount_paid',
         'change_amount',
+        'balance_due',
         'status',
         'notes',
         'sale_date',
@@ -46,6 +48,7 @@ class Sale extends Model
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'change_amount' => 'decimal:2',
+        'balance_due' => 'decimal:2',
         'sale_date' => 'datetime',
     ];
 
@@ -88,6 +91,11 @@ class Sale extends Model
     public function invoice(): HasOne
     {
         return $this->hasOne(Invoice::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->orderBy('payment_date', 'desc');
     }
 
     public function calculateTotals(): void

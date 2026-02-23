@@ -246,20 +246,43 @@
             <!-- Métodos de Pago -->
             <div style="margin-bottom: 25px;">
                 <h5 style="margin-bottom: 15px; color: #333;">💳 Método de Pago:</h5>
-                <div style="display: flex; gap: 15px;">
-                    <label style="flex: 1; background: {{ $payment_method === 'CASH' ? '#e7f7e7' : '#f8f9fa' }}; padding: 15px; border-radius: 8px; cursor: pointer; border: 2px solid {{ $payment_method === 'CASH' ? '#28a745' : '#dee2e6' }}; transition: all 0.3s;">
-                        <input type="radio" name="payment_method" value="CASH" wire:model="payment_method" style="margin-right: 8px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <label style="background: {{ $payment_method === 'CASH' ? '#e7f7e7' : '#f8f9fa' }}; padding: 12px; border-radius: 8px; cursor: pointer; border: 2px solid {{ $payment_method === 'CASH' ? '#28a745' : '#dee2e6' }}; transition: all 0.3s; text-align: center;">
+                        <input type="radio" name="payment_method" value="CASH" wire:model.live="payment_method" style="margin-right: 5px;">
                         <strong>💵 Efectivo</strong>
                     </label>
-                    <label style="flex: 1; background: {{ $payment_method === 'TRANSFER' ? '#e7f7e7' : '#f8f9fa' }}; padding: 15px; border-radius: 8px; cursor: pointer; border: 2px solid {{ $payment_method === 'TRANSFER' ? '#28a745' : '#dee2e6' }}; transition: all 0.3s;">
-                        <input type="radio" name="payment_method" value="TRANSFER" wire:model="payment_method" style="margin-right: 8px;">
+                    <label style="background: {{ $payment_method === 'CARD' ? '#e7f7e7' : '#f8f9fa' }}; padding: 12px; border-radius: 8px; cursor: pointer; border: 2px solid {{ $payment_method === 'CARD' ? '#28a745' : '#dee2e6' }}; transition: all 0.3s; text-align: center;">
+                        <input type="radio" name="payment_method" value="CARD" wire:model.live="payment_method" style="margin-right: 5px;">
+                        <strong>💳 Tarjeta</strong>
+                    </label>
+                    <label style="background: {{ $payment_method === 'CHEQUE' ? '#e7f7e7' : '#f8f9fa' }}; padding: 12px; border-radius: 8px; cursor: pointer; border: 2px solid {{ $payment_method === 'CHEQUE' ? '#28a745' : '#dee2e6' }}; transition: all 0.3s; text-align: center;">
+                        <input type="radio" name="payment_method" value="CHEQUE" wire:model.live="payment_method" style="margin-right: 5px;">
+                        <strong>📝 Cheque</strong>
+                    </label>
+                    <label style="background: {{ $payment_method === 'TRANSFER' ? '#e7f7e7' : '#f8f9fa' }}; padding: 12px; border-radius: 8px; cursor: pointer; border: 2px solid {{ $payment_method === 'TRANSFER' ? '#28a745' : '#dee2e6' }}; transition: all 0.3s; text-align: center;">
+                        <input type="radio" name="payment_method" value="TRANSFER" wire:model.live="payment_method" style="margin-right: 5px;">
                         <strong>🏦 Transferencia</strong>
                     </label>
                 </div>
             </div>
 
-            <!-- Campo de Efectivo -->
-            @if($payment_method === 'CASH')
+            <!-- Condición de Venta -->
+            <div style="margin-bottom: 25px;">
+                <h5 style="margin-bottom: 15px; color: #333;">📋 Condición de Venta:</h5>
+                <div style="display: flex; gap: 15px;">
+                    <label style="flex: 1; background: {{ $sale_condition === 'CONTADO' ? '#e7f7e7' : '#f8f9fa' }}; padding: 15px; border-radius: 8px; cursor: pointer; border: 2px solid {{ $sale_condition === 'CONTADO' ? '#28a745' : '#dee2e6' }};">
+                        <input type="radio" name="sale_condition" value="CONTADO" wire:model.live="sale_condition" style="margin-right: 8px;">
+                        <strong>✅ Contado</strong>
+                    </label>
+                    <label style="flex: 1; background: {{ $sale_condition === 'CREDITO' ? '#e7f7e7' : '#f8f9fa' }}; padding: 15px; border-radius: 8px; cursor: pointer; border: 2px solid {{ $sale_condition === 'CREDITO' ? '#28a745' : '#dee2e6' }};">
+                        <input type="radio" name="sale_condition" value="CREDITO" wire:model.live="sale_condition" style="margin-right: 8px;">
+                        <strong>📅 Crédito</strong>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Campo de Efectivo (solo si es CASH y CONTADO) -->
+            @if($payment_method === 'CASH' && $sale_condition === 'CONTADO')
             <div style="margin-bottom: 25px; background: #fff3cd; padding: 20px; border-radius: 10px; border: 1px solid #ffc107;">
                 <h6 style="margin-bottom: 15px; color: #856404;">💰 Dinero Recibido:</h6>
                 
@@ -308,6 +331,41 @@
             </div>
             @endif
 
+            <!-- Sección de Venta a Crédito -->
+            @if($sale_condition === 'CREDITO')
+            <div style="margin-bottom: 25px; background: #fff3cd; padding: 20px; border-radius: 10px; border: 2px solid #ffc107;">
+                <h6 style="margin-bottom: 15px; color: #856404; text-align: center;">💰 Pago Inicial (Crédito)</h6>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Monto Abonado:</label>
+                    <input 
+                        type="number" 
+                        wire:model.blur="amount_paid"
+                        style="width: 100%; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 18px; text-align: center; font-weight: bold;" 
+                        min="0" 
+                        max="{{ $total_amount }}"
+                        step="1000"
+                        placeholder="₲ 0"
+                        onfocus="this.select()">
+                </div>
+                
+                <div style="background: #f8d7da; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: #721c24; font-weight: bold;">Total:</span>
+                        <span style="color: #721c24; font-weight: bold;">₲ {{ number_format((float)$total_amount, 0, ',', '.') }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: #721c24;">Abonado:</span>
+                        <span style="color: #721c24;">₲ {{ number_format((float)$amount_paid, 0, ',', '.') }}</span>
+                    </div>
+                    <div style="border-top: 2px solid #f5c6cb; margin: 10px 0; padding-top: 10px; display: flex; justify-content: space-between;">
+                        <span style="color: #721c24; font-weight: bold; font-size: 16px;">Saldo Pendiente:</span>
+                        <span style="color: #dc3545; font-weight: bold; font-size: 18px;">₲ {{ number_format(max(0, (float)$total_amount - (float)$amount_paid), 0, ',', '.') }}</span>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Tipo de Comprobante -->
             <div style="margin-bottom: 25px;">
                 <h5 style="margin-bottom: 15px; color: #333;">📄 Tipo de Comprobante:</h5>
@@ -346,7 +404,18 @@
                 </button>
                 
                 @php
-                    $isDisabled = ($payment_method === 'CASH' && $cash_received < $total_amount) || ($sale_type === 'INVOICE' && empty($customer_name));
+                    // Validaciones para habilitar el botón
+                    $isDisabled = false;
+                    
+                    // Si es efectivo y contado, debe tener efectivo suficiente
+                    if ($payment_method === 'CASH' && $sale_condition === 'CONTADO' && $cash_received < $total_amount) {
+                        $isDisabled = true;
+                    }
+                    
+                    // Si es factura, debe tener nombre de cliente
+                    if ($document_type === 'factura' && empty($customer_name)) {
+                        $isDisabled = true;
+                    }
                 @endphp
                 
                 <button 

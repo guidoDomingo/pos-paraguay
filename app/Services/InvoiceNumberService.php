@@ -45,7 +45,7 @@ class InvoiceNumberService
     }
 
     /**
-     * Valida que el timbrado fiscal sea válido
+     * Valida que el timbrado fiscal sea válido (errores bloqueantes)
      */
     public function validateFiscalStamp(FiscalStamp $fiscalStamp): array
     {
@@ -65,18 +65,34 @@ class InvoiceNumberService
             $errors[] = 'El timbrado fiscal ha vencido';
         }
 
-        // Verificar numeración disponible
+        // Verificar numeración disponible - solo bloquear si está agotado
         if ($fiscalStamp->current_invoice_number >= $fiscalStamp->max_invoice_number) {
             $errors[] = 'Se ha agotado la numeración del timbrado fiscal';
         }
 
-        // Verificar que faltan al menos 100 números
-        $remaining = $fiscalStamp->getRemainingInvoices();
-        if ($remaining <= 100) {
-            $errors[] = "Quedan solo {$remaining} números de factura disponibles";
-        }
-
         return $errors;
+    }
+
+    /**
+     * Obtiene advertencias sobre el timbrado fiscal (no bloqueantes)
+     */
+    public function getFiscalStampWarnings(FiscalStamp $fiscalStamp): array
+    {
+        $warnings = [];
+        
+        $remaining = $fiscalStamp->getRemainingInvoices();
+        
+        // Advertencia si quedan pocos números
+        if ($remaining > 0 && $remaining <= 100) {
+            $warnings[] = "Advertencia: Quedan solo {$remaining} números de factura disponibles";
+        }
+        
+        // Advertencia si está próximo a vencer
+        if ($fiscalStamp->valid_until->diffInDays() <= 30 && !$fiscalStamp->valid_until->isPast()) {
+            $warnings[] = "Advertencia: El timbrado vence en {$fiscalStamp->valid_until->diffInDays()} días";
+        }
+        
+        return $warnings;
     }
 
     /**
