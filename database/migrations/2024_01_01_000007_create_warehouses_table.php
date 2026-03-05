@@ -19,6 +19,7 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->string('phone', 20)->nullable();
             $table->text('description')->nullable();
+            $table->string('location')->nullable();
             $table->foreignId('manager_user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->boolean('is_main')->default(false);
             $table->boolean('is_active')->default(true);
