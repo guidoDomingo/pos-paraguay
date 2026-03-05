@@ -13,16 +13,16 @@ class WarehouseSeeder extends Seeder
      */
     public function run(): void
     {
-        $company = Company::first();
+        // $company = Company::first();
         
-        Warehouse::create([
-            'company_id' => $company->id,
-            'name' => 'Almacén Principal',
-            'description' => 'Almacén principal de la empresa',
-            'location' => 'Depósito Central - Av. Mariscal López',
-            'is_active' => true,
-        ]);
+        // Warehouse::create([
+        //     'company_id' => $company->id,
+        //     'name' => 'Almacén Principal',
+        //     'description' => 'Almacén principal de la empresa',
+        //     'location' => 'Depósito Central - Av. Mariscal López',
+        //     'is_active' => true,
+        // ]);
         
-        echo "✅ Almacén creado exitosamente!\n";
+        // echo "✅ Almacén creado exitosamente!\n";
     }
 }
