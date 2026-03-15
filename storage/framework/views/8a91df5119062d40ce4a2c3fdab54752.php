@@ -71,7 +71,7 @@
             <!-- User menu -->
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-person-circle me-2"></i>
                         <?php echo e(Auth::user()->name); ?>
 
@@ -84,17 +84,77 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <form method="POST" action="<?php echo e(route('logout')); ?>">
-                                <?php echo csrf_field(); ?>
-                                <button type="submit" class="dropdown-item">
-                                    <i class="bi bi-box-arrow-right me-1"></i>
-                                    Cerrar Sesión
-                                </button>
-                            </form>
+                            <a href="#" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#logoutModal">
+                                <i class="bi bi-box-arrow-right me-1"></i>
+                                Cerrar Sesión
+                            </a>
                         </li>
                     </ul>
                 </li>
             </ul>
         </div>
     </div>
-</nav><?php /**PATH C:\laragon\www\bodega-app\resources\views/layouts/navigation.blade.php ENDPATH**/ ?>
+</nav>
+
+<!-- Script para solucionar conflictos de dropdown -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Solución manual para dropdown si Bootstrap tiene conflictos
+    const dropdownToggle = document.getElementById('navbarDropdown');
+    const dropdownMenu = dropdownToggle.nextElementSibling;
+    
+    if (dropdownToggle && dropdownMenu) {
+        dropdownToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Toggle la clase 'show'
+            dropdownMenu.classList.toggle('show');
+            
+            // Toggle aria-expanded
+            const expanded = dropdownToggle.getAttribute('aria-expanded') === 'true';
+            dropdownToggle.setAttribute('aria-expanded', !expanded);
+        });
+        
+        // Cerrar dropdown al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                dropdownMenu.classList.remove('show');
+                dropdownToggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+});
+</script>
+
+<!-- Modal de Confirmación de Logout -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logoutModalLabel">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    Confirmar Cerrar Sesión
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">¿Está seguro que desea cerrar sesión?</p>
+                <small class="text-muted">Será redirigido a la página de login.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Cancelar
+                </button>
+                <form method="POST" action="<?php echo e(route('logout')); ?>" class="d-inline">
+                    <?php echo csrf_field(); ?>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        Cerrar Sesión
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div><?php /**PATH C:\laragon\www\bodega-app\resources\views/layouts/navigation.blade.php ENDPATH**/ ?>

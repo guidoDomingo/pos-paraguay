@@ -1,0 +1,22 @@
+<!-- Solución Alternativa: JavaScript Nativo -->
+<!-- Reemplazar el enlace del logout con esto si el modal Bootstrap no funciona: -->
+
+<a href="#" class="dropdown-item" onclick="confirmarLogout(event)">
+    <i class="bi bi-box-arrow-right me-1"></i>
+    Cerrar Sesión
+</a>
+
+<!-- Y agregar este formulario oculto: -->
+<form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
+    @csrf
+</form>
+
+<!-- Script JavaScript -->
+<script>
+function confirmarLogout(event) {
+    event.preventDefault();
+    if(confirm('¿Está seguro que desea cerrar sesión?\n\nSerá redirigido a la página de login.')) {
+        document.getElementById('logout-form').submit();
+    }
+}
+</script>
