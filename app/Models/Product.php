@@ -48,9 +48,9 @@ class Product extends Model
         'special_price' => 'decimal:2',
         'custom_prices' => 'array',
         'tax_rate' => 'decimal:2',
-        'min_stock' => 'decimal:2',
-        'max_stock' => 'decimal:2',
-        'stock' => 'decimal:2',
+        'min_stock' => 'integer',
+        'max_stock' => 'integer',
+        'stock' => 'integer',
         'track_stock' => 'boolean',
         'is_active' => 'boolean',
     ];
