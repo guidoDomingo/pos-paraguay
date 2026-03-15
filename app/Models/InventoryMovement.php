@@ -78,6 +78,12 @@ class InventoryMovement extends Model
 
     public function getQuantityDisplayAttribute()
     {
+        // Si la cantidad ya tiene el signo correcto, respetarlo
+        if ($this->type === 'adjustment') {
+            return $this->quantity >= 0 ? '+' . $this->quantity : $this->quantity;
+        }
+        
+        // Para otros tipos, aplicar reglas tradicionales
         $sign = in_array($this->type, ['in', 'purchase', 'return']) ? '+' : '-';
         return $sign . abs($this->quantity);
     }
