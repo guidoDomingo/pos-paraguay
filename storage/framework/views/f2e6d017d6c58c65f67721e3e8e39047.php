@@ -11,12 +11,17 @@
      <?php $__env->slot('header', null, []); ?> 
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 font-weight-bold mb-0">
-                <i class="bi bi-plus-circle me-2"></i><?php echo e(__('Nuevo Producto')); ?>
+                <i class="bi bi-pencil me-2"></i><?php echo e(__('Editar Producto')); ?>
 
             </h2>
-            <a href="<?php echo e(route('products.index')); ?>" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i>Volver
-            </a>
+            <div class="btn-group">
+                <a href="<?php echo e(route('products.show', $product)); ?>" class="btn btn-outline-info">
+                    <i class="bi bi-eye me-1"></i>Ver
+                </a>
+                <a href="<?php echo e(route('products.index')); ?>" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Volver
+                </a>
+            </div>
         </div>
      <?php $__env->endSlot(); ?>
 
@@ -28,12 +33,14 @@
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0">
                                 <i class="bi bi-box-seam me-2"></i>
-                                Información del Producto
+                                Editar: <?php echo e($product->name); ?>
+
                             </h5>
                         </div>
                         <div class="card-body">
-                            <form method="POST" action="<?php echo e(route('products.store')); ?>" enctype="multipart/form-data">
+                            <form method="POST" action="<?php echo e(route('products.update', $product)); ?>" enctype="multipart/form-data" onsubmit="console.log('Enviando formulario...', new FormData(this).has('image') ? 'Con imagen' : 'Sin imagen');">
                                 <?php echo csrf_field(); ?>
+                                <?php echo method_field('PUT'); ?>
                                 
                                 <!-- Información básica -->
                                 <div class="row">
@@ -48,7 +55,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                   id="code" name="code" value="<?php echo e(old('code')); ?>" 
+                                                   id="code" name="code" value="<?php echo e(old('code', $product->code)); ?>" 
                                                    placeholder="Ej: PROD001">
                                             <?php $__errorArgs = ['code'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -73,7 +80,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                   id="barcode" name="barcode" value="<?php echo e(old('barcode')); ?>" 
+                                                   id="barcode" name="barcode" value="<?php echo e(old('barcode', $product->barcode)); ?>" 
                                                    placeholder="Código de barras">
                                             <?php $__errorArgs = ['barcode'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -101,7 +108,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                   id="name" name="name" value="<?php echo e(old('name')); ?>" 
+                                                   id="name" name="name" value="<?php echo e(old('name', $product->name)); ?>" 
                                                    placeholder="Nombre del producto">
                                             <?php $__errorArgs = ['name'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -128,7 +135,8 @@ endif;
 unset($__errorArgs, $__bag); ?>" id="category_id" name="category_id">
                                                 <option value="">Seleccionar categoría</option>
                                                 <?php $__currentLoopData = $categories ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                                    <option value="<?php echo e($category->id); ?>" <?php echo e(old('category_id') == $category->id ? 'selected' : ''); ?>>
+                                                    <option value="<?php echo e($category->id); ?>" 
+                                                            <?php echo e(old('category_id', $product->category_id) == $category->id ? 'selected' : ''); ?>>
                                                         <?php echo e($category->name); ?>
 
                                                     </option>
@@ -159,7 +167,7 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
                                               id="description" name="description" rows="3" 
-                                              placeholder="Descripción detallada del producto"><?php echo e(old('description')); ?></textarea>
+                                              placeholder="Descripción detallada del producto"><?php echo e(old('description', $product->description)); ?></textarea>
                                     <?php $__errorArgs = ['description'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
@@ -185,7 +193,7 @@ unset($__errorArgs, $__bag); ?>
                                         <div class="col-lg-8">
                                             <div class="card h-100">
                                                 <div class="card-body">
-                                                    <label for="image" class="form-label fw-medium">Seleccionar Imagen</label>
+                                                    <label for="image" class="form-label fw-medium">Cambiar Imagen</label>
                                                     <input type="file" class="form-control <?php $__errorArgs = ['image'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
@@ -209,24 +217,47 @@ $message = $__bag->first($__errorArgs[0]); ?>
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
+                                                    
+                                                    <?php if($product->hasImage()): ?>
+                                                    <div class="form-check mt-3">
+                                                        <input class="form-check-input" type="checkbox" id="remove_image" name="remove_image" value="1">
+                                                        <label class="form-check-label text-danger" for="remove_image">
+                                                            <i class="bi bi-trash me-1"></i>Eliminar imagen actual
+                                                        </label>
+                                                    </div>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-lg-4">
                                             <div class="card h-100">
                                                 <div class="card-body">
-                                                    <div class="image-preview-container d-none" id="imagePreviewContainer">
-                                                        <label class="form-label fw-medium">Vista Previa</label>
+                                                    <?php if($product->hasImage()): ?>
+                                                    <!-- Imagen actual -->
+                                                    <div id="currentImageContainer">
+                                                        <label class="form-label fw-medium">Imagen Actual</label>
                                                         <div class="border rounded-3 p-3 text-center bg-light position-relative" style="min-height: 120px;">
-                                                            <img id="imagePreview" src="" alt="Vista previa" 
+                                                            <img src="<?php echo e($product->getImageUrl('medium')); ?>" alt="<?php echo e($product->name); ?>" 
                                                                  class="img-fluid rounded-2 shadow-sm" style="max-height: 100px;">
                                                         </div>
                                                     </div>
-                                                    <div class="image-placeholder" id="imagePlaceholder">
-                                                        <label class="form-label fw-medium">Vista Previa</label>
+                                                    <?php else: ?>
+                                                    <!-- Placeholder si no hay imagen -->
+                                                    <div id="imagePlaceholder">
+                                                        <label class="form-label fw-medium">Sin Imagen</label>
                                                         <div class="border rounded-3 p-3 text-center bg-light d-flex flex-column justify-content-center align-items-center" style="min-height: 120px;">
                                                             <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
-                                                            <small class="text-muted mt-2">No hay imagen seleccionada</small>
+                                                            <small class="text-muted mt-2">No hay imagen actual</small>
+                                                        </div>
+                                                    </div>
+                                                    <?php endif; ?>
+                                                    
+                                                    <!-- Vista previa de nueva imagen -->
+                                                    <div class="image-preview-container d-none mt-3" id="imagePreviewContainer">
+                                                        <label class="form-label fw-medium text-success">Nueva Imagen - Vista Previa</label>
+                                                        <div class="border border-success rounded-3 p-3 text-center bg-light position-relative" style="min-height: 120px;">
+                                                            <img id="imagePreview" src="" alt="Vista previa" 
+                                                                 class="img-fluid rounded-2 shadow-sm" style="max-height: 100px;">
                                                         </div>
                                                     </div>
                                                 </div>
@@ -238,11 +269,10 @@ unset($__errorArgs, $__bag); ?>
                                 <!-- Precios -->
                                 <div class="card mb-4">
                                     <div class="card-header">
-                                        <h6 class="mb-0"><i class="bi bi-currency-exchange me-2"></i>Configuración de Precios</h6>
+                                        <h6 class="mb-0"><i class="bi bi-currency-exchange me-2"></i>Información de Precios</h6>
                                     </div>
                                     <div class="card-body">
-                                        <!-- Precio de Costo -->
-                                        <div class="row g-3 mb-4">
+                                        <div class="row g-3">
                                             <div class="col-md-4">
                                                 <div class="mb-3">
                                                     <label for="cost_price" class="form-label">Precio de Costo</label>
@@ -256,7 +286,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                               id="cost_price" name="cost_price" value="<?php echo e(old('cost_price')); ?>" 
+                                                               id="cost_price" name="cost_price" value="<?php echo e(old('cost_price', $product->cost_price)); ?>" 
                                                                min="0" step="0.01" placeholder="0.00">
                                                     </div>
                                                     <?php $__errorArgs = ['cost_price'];
@@ -273,38 +303,7 @@ unset($__errorArgs, $__bag); ?>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="mb-3">
-                                                    <label for="profit_percentage" class="form-label">% Ganancia Venta</label>
-                                                    <div class="input-group">
-                                                        <input type="number" class="form-control" 
-                                                               id="profit_percentage" 
-                                                               min="0" max="1000" step="0.1" placeholder="30">
-                                                        <span class="input-group-text">%</span>
-                                                    </div>
-                                                    <div class="form-text">Porcentaje de ganancia para calcular precio de venta</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="mb-3">
-                                                    <label for="wholesale_percentage" class="form-label">% Ganancia Mayorista</label>
-                                                    <div class="input-group">
-                                                        <input type="number" class="form-control" 
-                                                               id="wholesale_percentage" 
-                                                               min="0" max="1000" step="0.1" placeholder="20">
-                                                        <span class="input-group-text">%</span>
-                                                    </div>
-                                                    <div class="form-text">Porcentaje de ganancia para calcular precio mayorista</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Precios Calculados -->
-                                        <div class="row g-3 mb-4">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="sale_price" class="form-label">
-                                                        Precio de Venta <span class="text-danger">*</span>
-                                                        <span class="badge bg-info ms-1" id="sale_profit_badge">Calculado</span>
-                                                    </label>
+                                                    <label for="sale_price" class="form-label">Precio de Venta <span class="text-danger">*</span></label>
                                                     <div class="input-group">
                                                         <span class="input-group-text">₲</span>
                                                         <input type="number" class="form-control <?php $__errorArgs = ['sale_price'];
@@ -315,11 +314,8 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                               id="sale_price" name="sale_price" value="<?php echo e(old('sale_price')); ?>" 
-                                                               min="0" step="0.01" placeholder="0.00" required>
-                                                        <button class="btn btn-outline-secondary" type="button" id="toggle_sale_manual" title="Alternar entrada manual">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
+                                                               id="sale_price" name="sale_price" value="<?php echo e(old('sale_price', $product->sale_price)); ?>" 
+                                                               min="0" step="0.01" placeholder="0.00">
                                                     </div>
                                                     <?php $__errorArgs = ['sale_price'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -331,15 +327,11 @@ $message = $__bag->first($__errorArgs[0]); ?>
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
-                                                    <div class="form-text">Precio estándar para venta minorista</div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
                                                 <div class="mb-3">
-                                                    <label for="wholesale_price" class="form-label">
-                                                        Precio Mayorista
-                                                        <span class="badge bg-info ms-1" id="wholesale_profit_badge">Calculado</span>
-                                                    </label>
+                                                    <label for="wholesale_price" class="form-label">Precio Mayorista</label>
                                                     <div class="input-group">
                                                         <span class="input-group-text">₲</span>
                                                         <input type="number" class="form-control <?php $__errorArgs = ['wholesale_price'];
@@ -350,11 +342,8 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                               id="wholesale_price" name="wholesale_price" value="<?php echo e(old('wholesale_price')); ?>" 
+                                                               id="wholesale_price" name="wholesale_price" value="<?php echo e(old('wholesale_price', $product->wholesale_price)); ?>" 
                                                                min="0" step="0.01" placeholder="0.00">
-                                                        <button class="btn btn-outline-secondary" type="button" id="toggle_wholesale_manual" title="Alternar entrada manual">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
                                                     </div>
                                                     <?php $__errorArgs = ['wholesale_price'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -366,27 +355,6 @@ $message = $__bag->first($__errorArgs[0]); ?>
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
-                                                    <div class="form-text">Para ventas al por mayor</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Información de Ganancia -->
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="alert alert-light border">
-                                                    <small class="text-muted">
-                                                        <strong>Ganancia Unitaria Venta:</strong> 
-                                                        <span id="sale_profit_amount">₲ 0</span>
-                                                    </small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="alert alert-light border">
-                                                    <small class="text-muted">
-                                                        <strong>Ganancia Unitaria Mayorista:</strong> 
-                                                        <span id="wholesale_profit_amount">₲ 0</span>
-                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
@@ -409,7 +377,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                               id="check_price" name="check_price" value="<?php echo e(old('check_price')); ?>" 
+                                                               id="check_price" name="check_price" value="<?php echo e(old('check_price', $product->check_price)); ?>" 
                                                                min="0" step="0.01" placeholder="0.00">
                                                     </div>
                                                     <?php $__errorArgs = ['check_price'];
@@ -434,7 +402,7 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
                                                            id="check_price_description" name="check_price_description" 
-                                                           value="<?php echo e(old('check_price_description')); ?>" 
+                                                           value="<?php echo e(old('check_price_description', $product->check_price_description)); ?>" 
                                                            placeholder="Ej: 5% descuento por pago en cheque">
                                                     <?php $__errorArgs = ['check_price_description'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -462,7 +430,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                               id="credit_price" name="credit_price" value="<?php echo e(old('credit_price')); ?>" 
+                                                               id="credit_price" name="credit_price" value="<?php echo e(old('credit_price', $product->credit_price)); ?>" 
                                                                min="0" step="0.01" placeholder="0.00">
                                                     </div>
                                                     <?php $__errorArgs = ['credit_price'];
@@ -487,7 +455,7 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
                                                            id="credit_price_description" name="credit_price_description" 
-                                                           value="<?php echo e(old('credit_price_description')); ?>" 
+                                                           value="<?php echo e(old('credit_price_description', $product->credit_price_description)); ?>" 
                                                            placeholder="Ej: Precio con financiamiento a 30 días">
                                                     <?php $__errorArgs = ['credit_price_description'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -517,7 +485,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                               id="special_price" name="special_price" value="<?php echo e(old('special_price')); ?>" 
+                                                               id="special_price" name="special_price" value="<?php echo e(old('special_price', $product->special_price)); ?>" 
                                                                min="0" step="0.01" placeholder="0.00">
                                                     </div>
                                                     <?php $__errorArgs = ['special_price'];
@@ -544,7 +512,7 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
                                                            id="special_price_description" name="special_price_description" 
-                                                           value="<?php echo e(old('special_price_description')); ?>" 
+                                                           value="<?php echo e(old('special_price_description', $product->special_price_description)); ?>" 
                                                            placeholder="Ej: Oferta limitada por tiempo">
                                                     <?php $__errorArgs = ['special_price_description'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -571,9 +539,9 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" id="iva_type" name="iva_type">
-                                                        <option value="IVA_10" <?php echo e(old('iva_type', 'IVA_10') == 'IVA_10' ? 'selected' : ''); ?>>IVA 10%</option>
-                                                        <option value="IVA_5" <?php echo e(old('iva_type') == 'IVA_5' ? 'selected' : ''); ?>>IVA 5%</option>
-                                                        <option value="EXENTO" <?php echo e(old('iva_type') == 'EXENTO' ? 'selected' : ''); ?>>Exento</option>
+                                                        <option value="IVA_10" <?php echo e(old('iva_type', $product->iva_type) == 'IVA_10' ? 'selected' : ''); ?>>IVA 10%</option>
+                                                        <option value="IVA_5" <?php echo e(old('iva_type', $product->iva_type) == 'IVA_5' ? 'selected' : ''); ?>>IVA 5%</option>
+                                                        <option value="EXENTO" <?php echo e(old('iva_type', $product->iva_type) == 'EXENTO' ? 'selected' : ''); ?>>Exento</option>
                                                     </select>
                                                     <?php $__errorArgs = ['iva_type'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -598,12 +566,12 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" id="unit" name="unit">
-                                                        <option value="UNIDAD" <?php echo e(old('unit', 'UNIDAD') == 'UNIDAD' ? 'selected' : ''); ?>>Unidad</option>
-                                                        <option value="KG" <?php echo e(old('unit') == 'KG' ? 'selected' : ''); ?>>Kilogramo</option>
-                                                        <option value="LT" <?php echo e(old('unit') == 'LT' ? 'selected' : ''); ?>>Litro</option>
-                                                        <option value="MT" <?php echo e(old('unit') == 'MT' ? 'selected' : ''); ?>>Metro</option>
-                                                        <option value="CAJA" <?php echo e(old('unit') == 'CAJA' ? 'selected' : ''); ?>>Caja</option>
-                                                        <option value="PAQUETE" <?php echo e(old('unit') == 'PAQUETE' ? 'selected' : ''); ?>>Paquete</option>
+                                                        <option value="UNIDAD" <?php echo e(old('unit', $product->unit) == 'UNIDAD' ? 'selected' : ''); ?>>Unidad</option>
+                                                        <option value="KG" <?php echo e(old('unit', $product->unit) == 'KG' ? 'selected' : ''); ?>>Kilogramo</option>
+                                                        <option value="LT" <?php echo e(old('unit', $product->unit) == 'LT' ? 'selected' : ''); ?>>Litro</option>
+                                                        <option value="MT" <?php echo e(old('unit', $product->unit) == 'MT' ? 'selected' : ''); ?>>Metro</option>
+                                                        <option value="CAJA" <?php echo e(old('unit', $product->unit) == 'CAJA' ? 'selected' : ''); ?>>Caja</option>
+                                                        <option value="PAQUETE" <?php echo e(old('unit', $product->unit) == 'PAQUETE' ? 'selected' : ''); ?>>Paquete</option>
                                                     </select>
                                                     <?php $__errorArgs = ['unit'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -631,7 +599,7 @@ unset($__errorArgs, $__bag); ?>
                                             <div class="col-md-12 mb-3">
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" id="track_stock" name="track_stock" 
-                                                           value="1" <?php echo e(old('track_stock') ? 'checked' : ''); ?>>
+                                                           value="1" <?php echo e(old('track_stock', $product->track_stock) ? 'checked' : ''); ?>>
                                                     <label class="form-check-label" for="track_stock">
                                                         Controlar stock de este producto
                                                     </label>
@@ -639,11 +607,11 @@ unset($__errorArgs, $__bag); ?>
                                             </div>
                                         </div>
                                         
-                                        <div id="stockFields" style="display: none;">
+                                        <div id="stockFields" style="display: <?php echo e($product->track_stock ? 'block' : 'none'); ?>;">
                                             <div class="row">
                                                 <div class="col-md-4">
                                                     <div class="mb-3">
-                                                        <label for="stock" class="form-label">Stock Inicial</label>
+                                                        <label for="stock" class="form-label">Stock Actual</label>
                                                         <input type="number" class="form-control <?php $__errorArgs = ['stock'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
@@ -652,7 +620,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                               id="stock" name="stock" value="<?php echo e(old('stock', 0)); ?>" 
+                                                               id="stock" name="stock" value="<?php echo e(old('stock', $product->stock)); ?>" 
                                                                min="0" step="1">
                                                         <?php $__errorArgs = ['stock'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -664,6 +632,9 @@ $message = $__bag->first($__errorArgs[0]); ?>
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
+                                                        <small class="text-muted">
+                                                            Para ajustes de stock, usa el módulo de inventario.
+                                                        </small>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-4">
@@ -677,7 +648,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                                                               id="min_stock" name="min_stock" value="<?php echo e(old('min_stock', 0)); ?>" 
+                                                               id="min_stock" name="min_stock" value="<?php echo e(old('min_stock', $product->min_stock)); ?>" 
                                                                min="0" step="1">
                                                         <?php $__errorArgs = ['min_stock'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -702,12 +673,12 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" id="unit" name="unit">
-                                                            <option value="unidad" <?php echo e(old('unit', 'unidad') == 'unidad' ? 'selected' : ''); ?>>Unidad</option>
-                                                            <option value="kg" <?php echo e(old('unit') == 'kg' ? 'selected' : ''); ?>>Kilogramo</option>
-                                                            <option value="litro" <?php echo e(old('unit') == 'litro' ? 'selected' : ''); ?>>Litro</option>
-                                                            <option value="metro" <?php echo e(old('unit') == 'metro' ? 'selected' : ''); ?>>Metro</option>
-                                                            <option value="caja" <?php echo e(old('unit') == 'caja' ? 'selected' : ''); ?>>Caja</option>
-                                                            <option value="paquete" <?php echo e(old('unit') == 'paquete' ? 'selected' : ''); ?>>Paquete</option>
+                                                            <option value="unidad" <?php echo e(old('unit', $product->unit) == 'unidad' ? 'selected' : ''); ?>>Unidad</option>
+                                                            <option value="kg" <?php echo e(old('unit', $product->unit) == 'kg' ? 'selected' : ''); ?>>Kilogramo</option>
+                                                            <option value="litro" <?php echo e(old('unit', $product->unit) == 'litro' ? 'selected' : ''); ?>>Litro</option>
+                                                            <option value="metro" <?php echo e(old('unit', $product->unit) == 'metro' ? 'selected' : ''); ?>>Metro</option>
+                                                            <option value="caja" <?php echo e(old('unit', $product->unit) == 'caja' ? 'selected' : ''); ?>>Caja</option>
+                                                            <option value="paquete" <?php echo e(old('unit', $product->unit) == 'paquete' ? 'selected' : ''); ?>>Paquete</option>
                                                         </select>
                                                         <?php $__errorArgs = ['unit'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -730,20 +701,39 @@ unset($__errorArgs, $__bag); ?>
                                 <div class="mb-3">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
-                                               value="1" <?php echo e(old('is_active', true) ? 'checked' : ''); ?>>
+                                               value="1" <?php echo e(old('is_active', $product->is_active) ? 'checked' : ''); ?>>
                                         <label class="form-check-label" for="is_active">
                                             Producto activo
                                         </label>
                                     </div>
                                 </div>
 
+                                <!-- Información de auditoría -->
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Información de Auditoría</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <small class="text-muted">Creado:</small>
+                                                <p class="mb-0"><?php echo e($product->created_at->format('d/m/Y H:i:s')); ?></p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <small class="text-muted">Última modificación:</small>
+                                                <p class="mb-0"><?php echo e($product->updated_at->format('d/m/Y H:i:s')); ?></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Botones -->
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="<?php echo e(route('products.index')); ?>" class="btn btn-secondary">
+                                    <a href="<?php echo e(route('products.show', $product)); ?>" class="btn btn-secondary">
                                         <i class="bi bi-x-circle me-1"></i>Cancelar
                                     </a>
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-check-circle me-1"></i>Crear Producto
+                                        <i class="bi bi-check-circle me-1"></i>Actualizar Producto
                                     </button>
                                 </div>
                             </form>
@@ -818,7 +808,8 @@ unset($__errorArgs, $__bag); ?>
             const imageInput = document.getElementById('image');
             const imagePreview = document.getElementById('imagePreview');
             const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-            const imagePlaceholder = document.getElementById('imagePlaceholder');
+            const removeImageCheckbox = document.getElementById('remove_image');
+            const currentImageContainer = document.getElementById('currentImageContainer');
             
             function toggleStockFields() {
                 if (trackStockCheckbox.checked) {
@@ -829,15 +820,17 @@ unset($__errorArgs, $__bag); ?>
             }
             
             // Vista previa de imagen
-            imageInput.addEventListener('change', function(e) {
+            imageInput?.addEventListener('change', function(e) {
+                console.log('Cambio detectado en input de imagen');
                 const file = e.target.files[0];
                 
                 if (file) {
+                    console.log('Archivo seleccionado:', file.name, 'Tamaño:', file.size);
                     // Validar tamaño (5MB máximo)
                     if (file.size > 5 * 1024 * 1024) {
                         alert('La imagen no puede ser mayor a 5MB');
                         this.value = '';
-                        showPlaceholder();
+                        imagePreviewContainer?.classList.add('d-none');
                         return;
                     }
                     
@@ -846,176 +839,58 @@ unset($__errorArgs, $__bag); ?>
                     if (!allowedTypes.includes(file.type)) {
                         alert('Solo se permiten imágenes JPG, PNG y WebP');
                         this.value = '';
-                        showPlaceholder();
+                        imagePreviewContainer?.classList.add('d-none');
                         return;
                     }
                     
+                    console.log('Archivo válido, generando vista previa...');
                     // Mostrar vista previa
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         imagePreview.src = e.target.result;
-                        showPreview();
+                        imagePreviewContainer?.classList.remove('d-none');
+                        
+                        // Desmarcar "eliminar imagen" si está marcado
+                        if (removeImageCheckbox) {
+                            removeImageCheckbox.checked = false;
+                            if (currentImageContainer) {
+                                currentImageContainer.style.setProperty('opacity', '1');
+                                currentImageContainer.style.setProperty('filter', 'none');
+                            }
+                        }
+                        console.log('Vista previa generada exitosamente');
                     };
                     reader.readAsDataURL(file);
                 } else {
-                    showPlaceholder();
+                    console.log('No se seleccionó archivo');
+                    imagePreviewContainer?.classList.add('d-none');
                 }
             });
             
-            function showPreview() {
-                if (imagePreviewContainer) {
-                    imagePreviewContainer.classList.remove('d-none');
+            // Manejar checkbox "eliminar imagen"
+            removeImageCheckbox?.addEventListener('change', function() {
+                if (this.checked) {
+                    // Limpiar input de imagen y vista previa
+                    imageInput.value = '';
+                    imagePreviewContainer?.classList.add('d-none');
+                    
+                    // Aplicar efecto visual a la imagen actual para indicar que será eliminada
+                    if (currentImageContainer) {
+                        currentImageContainer.style.setProperty('opacity', '0.5');
+                        currentImageContainer.style.setProperty('filter', 'grayscale(100%)');
+                    }
+                } else {
+                    // Restaurar apariencia normal de la imagen actual
+                    if (currentImageContainer) {
+                        currentImageContainer.style.setProperty('opacity', '1');
+                        currentImageContainer.style.setProperty('filter', 'none');
+                    }
                 }
-                if (imagePlaceholder) {
-                    imagePlaceholder.classList.add('d-none');
-                }
-            }
-            
-            function showPlaceholder() {
-                if (imagePreviewContainer) {
-                    imagePreviewContainer.classList.add('d-none');
-                }
-                if (imagePlaceholder) {
-                    imagePlaceholder.classList.remove('d-none');
-                }
-            }
-            
-            // Estado inicial
-            showPlaceholder();
+            });
             
             trackStockCheckbox.addEventListener('change', toggleStockFields);
             toggleStockFields(); // Initial state
         });
-
-        // ================================
-        // CALCULADORA AUTOMÁTICA DE PRECIOS
-        // ================================
-        
-        const costPriceInput = document.getElementById('cost_price');
-        const profitPercentageInput = document.getElementById('profit_percentage');
-        const wholesalePercentageInput = document.getElementById('wholesale_percentage');
-        const salePriceInput = document.getElementById('sale_price');
-        const wholesalePriceInput = document.getElementById('wholesale_price');
-        const saleProfitBadge = document.getElementById('sale_profit_badge');
-        const wholesaleProfitBadge = document.getElementById('wholesale_profit_badge');
-        const saleProfitAmount = document.getElementById('sale_profit_amount');
-        const wholesaleProfitAmount = document.getElementById('wholesale_profit_amount');
-        const toggleSaleManualBtn = document.getElementById('toggle_sale_manual');
-        const toggleWholesaleManualBtn = document.getElementById('toggle_wholesale_manual');
-        
-        let saleManualMode = false;
-        let wholesaleManualMode = false;
-        
-        // Función para formatear números con separadores de miles
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('es-PY', {
-                style: 'currency',
-                currency: 'PYG',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(amount);
-        }
-        
-        // Función para calcular precios
-        function calculatePrices() {
-            const costPrice = parseFloat(costPriceInput.value) || 0;
-            const profitPercentage = parseFloat(profitPercentageInput.value) || 0;
-            const wholesalePercentage = parseFloat(wholesalePercentageInput.value) || 0;
-            
-            // Calcular precio de venta si no está en modo manual
-            if (!saleManualMode && costPrice > 0 && profitPercentage > 0) {
-                const calculatedSalePrice = costPrice * (1 + profitPercentage / 100);
-                salePriceInput.value = calculatedSalePrice.toFixed(0);
-                saleProfitBadge.textContent = 'Auto (' + profitPercentage + '%)';
-                saleProfitBadge.className = 'badge bg-success ms-1';
-                
-                // Calcular ganancia unitaria
-                const saleProfit = calculatedSalePrice - costPrice;
-                saleProfitAmount.textContent = formatCurrency(saleProfit);
-            } else if (saleManualMode) {
-                saleProfitBadge.textContent = 'Manual';
-                saleProfitBadge.className = 'badge bg-warning ms-1';
-                
-                // Calcular ganancia con precio manual
-                const salePrice = parseFloat(salePriceInput.value) || 0;
-                const saleProfit = salePrice - costPrice;
-                saleProfitAmount.textContent = formatCurrency(saleProfit);
-            } else {
-                saleProfitBadge.textContent = 'Esperando';
-                saleProfitBadge.className = 'badge bg-secondary ms-1';
-                saleProfitAmount.textContent = '₲ 0';
-            }
-            
-            // Calcular precio mayorista si no está en modo manual
-            if (!wholesaleManualMode && costPrice > 0 && wholesalePercentage > 0) {
-                const calculatedWholesalePrice = costPrice * (1 + wholesalePercentage / 100);
-                wholesalePriceInput.value = calculatedWholesalePrice.toFixed(0);
-                wholesaleProfitBadge.textContent = 'Auto (' + wholesalePercentage + '%)';
-                wholesaleProfitBadge.className = 'badge bg-success ms-1';
-                
-                // Calcular ganancia unitaria
-                const wholesaleProfit = calculatedWholesalePrice - costPrice;
-                wholesaleProfitAmount.textContent = formatCurrency(wholesaleProfit);
-            } else if (wholesaleManualMode) {
-                wholesaleProfitBadge.textContent = 'Manual';
-                wholesaleProfitBadge.className = 'badge bg-warning ms-1';
-                
-                // Calcular ganancia con precio manual
-                const wholesalePrice = parseFloat(wholesalePriceInput.value) || 0;
-                const wholesaleProfit = wholesalePrice - costPrice;
-                wholesaleProfitAmount.textContent = formatCurrency(wholesaleProfit);
-            } else {
-                wholesaleProfitBadge.textContent = 'Esperando';
-                wholesaleProfitBadge.className = 'badge bg-secondary ms-1';
-                wholesaleProfitAmount.textContent = '₲ 0';
-            }
-        }
-        
-        // Alternar modo manual para precio de venta
-        toggleSaleManualBtn.addEventListener('click', function() {
-            saleManualMode = !saleManualMode;
-            if (saleManualMode) {
-                this.innerHTML = '<i class="bi bi-calculator"></i>';
-                this.title = 'Volver a cálculo automático';
-                salePriceInput.focus();
-            } else {
-                this.innerHTML = '<i class="bi bi-pencil"></i>';
-                this.title = 'Alternar entrada manual';
-                calculatePrices();
-            }
-        });
-        
-        // Alternar modo manual para precio mayorista
-        toggleWholesaleManualBtn.addEventListener('click', function() {
-            wholesaleManualMode = !wholesaleManualMode;
-            if (wholesaleManualMode) {
-                this.innerHTML = '<i class="bi bi-calculator"></i>';
-                this.title = 'Volver a cálculo automático';
-                wholesalePriceInput.focus();
-            } else {
-                this.innerHTML = '<i class="bi bi-pencil"></i>';
-                this.title = 'Alternar entrada manual';
-                calculatePrices();
-            }
-        });
-        
-        // Event listeners para recalcular automáticamente
-        costPriceInput.addEventListener('input', calculatePrices);
-        profitPercentageInput.addEventListener('input', calculatePrices);
-        wholesalePercentageInput.addEventListener('input', calculatePrices);
-        salePriceInput.addEventListener('input', function() {
-            if (saleManualMode) calculatePrices();
-        });
-        wholesalePriceInput.addEventListener('input', function() {
-            if (wholesaleManualMode) calculatePrices();
-        });
-        
-        // Valores por defecto para porcentajes
-        if (profitPercentageInput) profitPercentageInput.value = '30';  // 30% ganancia por defecto
-        if (wholesalePercentageInput) wholesalePercentageInput.value = '20'; // 20% ganancia por defecto
-        
-        // Calcular precios inicialmente
-        calculatePrices();
     </script>
  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
@@ -1026,4 +901,4 @@ unset($__errorArgs, $__bag); ?>
 <?php if (isset($__componentOriginal4619374cef299e94fd7263111d0abc69)): ?>
 <?php $component = $__componentOriginal4619374cef299e94fd7263111d0abc69; ?>
 <?php unset($__componentOriginal4619374cef299e94fd7263111d0abc69); ?>
-<?php endif; ?><?php /**PATH C:\laragon\www\bodega-app\resources\views/products/create.blade.php ENDPATH**/ ?>
+<?php endif; ?><?php /**PATH C:\laragon\www\bodega-app\resources\views/products/edit.blade.php ENDPATH**/ ?>

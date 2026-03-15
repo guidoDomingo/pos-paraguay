@@ -146,7 +146,7 @@
                                         <h6 class="mb-0"><i class="bi bi-currency-exchange me-2"></i>Configuración de Precios</h6>
                                     </div>
                                     <div class="card-body">
-                                        <!-- Precios básicos -->
+                                        <!-- Precio de Costo -->
                                         <div class="row g-3 mb-4">
                                             <div class="col-md-4">
                                                 <div class="mb-3">
@@ -164,12 +164,46 @@
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="mb-3">
-                                                    <label for="sale_price" class="form-label">Precio de Venta <span class="text-danger">*</span></label>
+                                                    <label for="profit_percentage" class="form-label">% Ganancia Venta</label>
+                                                    <div class="input-group">
+                                                        <input type="number" class="form-control" 
+                                                               id="profit_percentage" 
+                                                               min="0" max="1000" step="0.1" placeholder="30">
+                                                        <span class="input-group-text">%</span>
+                                                    </div>
+                                                    <div class="form-text">Porcentaje de ganancia para calcular precio de venta</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="wholesale_percentage" class="form-label">% Ganancia Mayorista</label>
+                                                    <div class="input-group">
+                                                        <input type="number" class="form-control" 
+                                                               id="wholesale_percentage" 
+                                                               min="0" max="1000" step="0.1" placeholder="20">
+                                                        <span class="input-group-text">%</span>
+                                                    </div>
+                                                    <div class="form-text">Porcentaje de ganancia para calcular precio mayorista</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Precios Calculados -->
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="sale_price" class="form-label">
+                                                        Precio de Venta <span class="text-danger">*</span>
+                                                        <span class="badge bg-info ms-1" id="sale_profit_badge">Calculado</span>
+                                                    </label>
                                                     <div class="input-group">
                                                         <span class="input-group-text">₲</span>
                                                         <input type="number" class="form-control @error('sale_price') is-invalid @enderror" 
                                                                id="sale_price" name="sale_price" value="{{ old('sale_price') }}" 
                                                                min="0" step="0.01" placeholder="0.00" required>
+                                                        <button class="btn btn-outline-secondary" type="button" id="toggle_sale_manual" title="Alternar entrada manual">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
                                                     </div>
                                                     @error('sale_price')
                                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -177,19 +211,45 @@
                                                     <div class="form-text">Precio estándar para venta minorista</div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-6">
                                                 <div class="mb-3">
-                                                    <label for="wholesale_price" class="form-label">Precio Mayorista</label>
+                                                    <label for="wholesale_price" class="form-label">
+                                                        Precio Mayorista
+                                                        <span class="badge bg-info ms-1" id="wholesale_profit_badge">Calculado</span>
+                                                    </label>
                                                     <div class="input-group">
                                                         <span class="input-group-text">₲</span>
                                                         <input type="number" class="form-control @error('wholesale_price') is-invalid @enderror" 
                                                                id="wholesale_price" name="wholesale_price" value="{{ old('wholesale_price') }}" 
                                                                min="0" step="0.01" placeholder="0.00">
+                                                        <button class="btn btn-outline-secondary" type="button" id="toggle_wholesale_manual" title="Alternar entrada manual">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
                                                     </div>
                                                     @error('wholesale_price')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
                                                     <div class="form-text">Para ventas al por mayor</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Información de Ganancia -->
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="alert alert-light border">
+                                                    <small class="text-muted">
+                                                        <strong>Ganancia Unitaria Venta:</strong> 
+                                                        <span id="sale_profit_amount">₲ 0</span>
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="alert alert-light border">
+                                                    <small class="text-muted">
+                                                        <strong>Ganancia Unitaria Mayorista:</strong> 
+                                                        <span id="wholesale_profit_amount">₲ 0</span>
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
@@ -535,5 +595,135 @@
             trackStockCheckbox.addEventListener('change', toggleStockFields);
             toggleStockFields(); // Initial state
         });
+
+        // ================================
+        // CALCULADORA AUTOMÁTICA DE PRECIOS
+        // ================================
+        
+        const costPriceInput = document.getElementById('cost_price');
+        const profitPercentageInput = document.getElementById('profit_percentage');
+        const wholesalePercentageInput = document.getElementById('wholesale_percentage');
+        const salePriceInput = document.getElementById('sale_price');
+        const wholesalePriceInput = document.getElementById('wholesale_price');
+        const saleProfitBadge = document.getElementById('sale_profit_badge');
+        const wholesaleProfitBadge = document.getElementById('wholesale_profit_badge');
+        const saleProfitAmount = document.getElementById('sale_profit_amount');
+        const wholesaleProfitAmount = document.getElementById('wholesale_profit_amount');
+        const toggleSaleManualBtn = document.getElementById('toggle_sale_manual');
+        const toggleWholesaleManualBtn = document.getElementById('toggle_wholesale_manual');
+        
+        let saleManualMode = false;
+        let wholesaleManualMode = false;
+        
+        // Función para formatear números con separadores de miles
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-PY', {
+                style: 'currency',
+                currency: 'PYG',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+        
+        // Función para calcular precios
+        function calculatePrices() {
+            const costPrice = parseFloat(costPriceInput.value) || 0;
+            const profitPercentage = parseFloat(profitPercentageInput.value) || 0;
+            const wholesalePercentage = parseFloat(wholesalePercentageInput.value) || 0;
+            
+            // Calcular precio de venta si no está en modo manual
+            if (!saleManualMode && costPrice > 0 && profitPercentage > 0) {
+                const calculatedSalePrice = costPrice * (1 + profitPercentage / 100);
+                salePriceInput.value = calculatedSalePrice.toFixed(0);
+                saleProfitBadge.textContent = 'Auto (' + profitPercentage + '%)';
+                saleProfitBadge.className = 'badge bg-success ms-1';
+                
+                // Calcular ganancia unitaria
+                const saleProfit = calculatedSalePrice - costPrice;
+                saleProfitAmount.textContent = formatCurrency(saleProfit);
+            } else if (saleManualMode) {
+                saleProfitBadge.textContent = 'Manual';
+                saleProfitBadge.className = 'badge bg-warning ms-1';
+                
+                // Calcular ganancia con precio manual
+                const salePrice = parseFloat(salePriceInput.value) || 0;
+                const saleProfit = salePrice - costPrice;
+                saleProfitAmount.textContent = formatCurrency(saleProfit);
+            } else {
+                saleProfitBadge.textContent = 'Esperando';
+                saleProfitBadge.className = 'badge bg-secondary ms-1';
+                saleProfitAmount.textContent = '₲ 0';
+            }
+            
+            // Calcular precio mayorista si no está en modo manual
+            if (!wholesaleManualMode && costPrice > 0 && wholesalePercentage > 0) {
+                const calculatedWholesalePrice = costPrice * (1 + wholesalePercentage / 100);
+                wholesalePriceInput.value = calculatedWholesalePrice.toFixed(0);
+                wholesaleProfitBadge.textContent = 'Auto (' + wholesalePercentage + '%)';
+                wholesaleProfitBadge.className = 'badge bg-success ms-1';
+                
+                // Calcular ganancia unitaria
+                const wholesaleProfit = calculatedWholesalePrice - costPrice;
+                wholesaleProfitAmount.textContent = formatCurrency(wholesaleProfit);
+            } else if (wholesaleManualMode) {
+                wholesaleProfitBadge.textContent = 'Manual';
+                wholesaleProfitBadge.className = 'badge bg-warning ms-1';
+                
+                // Calcular ganancia con precio manual
+                const wholesalePrice = parseFloat(wholesalePriceInput.value) || 0;
+                const wholesaleProfit = wholesalePrice - costPrice;
+                wholesaleProfitAmount.textContent = formatCurrency(wholesaleProfit);
+            } else {
+                wholesaleProfitBadge.textContent = 'Esperando';
+                wholesaleProfitBadge.className = 'badge bg-secondary ms-1';
+                wholesaleProfitAmount.textContent = '₲ 0';
+            }
+        }
+        
+        // Alternar modo manual para precio de venta
+        toggleSaleManualBtn.addEventListener('click', function() {
+            saleManualMode = !saleManualMode;
+            if (saleManualMode) {
+                this.innerHTML = '<i class="bi bi-calculator"></i>';
+                this.title = 'Volver a cálculo automático';
+                salePriceInput.focus();
+            } else {
+                this.innerHTML = '<i class="bi bi-pencil"></i>';
+                this.title = 'Alternar entrada manual';
+                calculatePrices();
+            }
+        });
+        
+        // Alternar modo manual para precio mayorista
+        toggleWholesaleManualBtn.addEventListener('click', function() {
+            wholesaleManualMode = !wholesaleManualMode;
+            if (wholesaleManualMode) {
+                this.innerHTML = '<i class="bi bi-calculator"></i>';
+                this.title = 'Volver a cálculo automático';
+                wholesalePriceInput.focus();
+            } else {
+                this.innerHTML = '<i class="bi bi-pencil"></i>';
+                this.title = 'Alternar entrada manual';
+                calculatePrices();
+            }
+        });
+        
+        // Event listeners para recalcular automáticamente
+        costPriceInput.addEventListener('input', calculatePrices);
+        profitPercentageInput.addEventListener('input', calculatePrices);
+        wholesalePercentageInput.addEventListener('input', calculatePrices);
+        salePriceInput.addEventListener('input', function() {
+            if (saleManualMode) calculatePrices();
+        });
+        wholesalePriceInput.addEventListener('input', function() {
+            if (wholesaleManualMode) calculatePrices();
+        });
+        
+        // Valores por defecto para porcentajes
+        if (profitPercentageInput) profitPercentageInput.value = '30';  // 30% ganancia por defecto
+        if (wholesalePercentageInput) wholesalePercentageInput.value = '20'; // 20% ganancia por defecto
+        
+        // Calcular precios inicialmente
+        calculatePrices();
     </script>
 </x-app-layout>
