@@ -58,6 +58,14 @@
                     </a>
                 </li>
                 @endif
+                @if(Route::has('admin.data-management.index') && auth()->user() && auth()->user()->hasPermission('admin.settings'))
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.data-management.*') ? 'active' : '' }}" href="{{ route('admin.data-management.index') }}">
+                        <i class="bi bi-gear-fill me-1"></i>
+                        Gestión de Datos
+                    </a>
+                </li>
+                @endif
             </ul>
 
             <!-- User menu -->

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Company;
+use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -22,6 +23,16 @@ class UserSeeder extends Seeder
             return;
         }
 
+        // Obtener roles
+        $adminRole = Role::where('name', 'admin')->first();
+        $supervisorRole = Role::where('name', 'supervisor')->first();
+        $sellerRole = Role::where('name', 'seller')->first();
+        
+        if (!$adminRole) {
+            echo "❌ No hay roles creados. Ejecuta primero RoleSeeder\n";
+            return;
+        }
+
         // Usuarios de prueba
         $users = [
             [
@@ -29,6 +40,8 @@ class UserSeeder extends Seeder
                 'email' => 'admin@bodegaapp.com',
                 'password' => Hash::make('password123'),
                 'company_id' => $company->id,
+                'role_id' => $adminRole->id,  // ← ADMIN
+                'employee_code' => 'ADM001',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
@@ -37,6 +50,8 @@ class UserSeeder extends Seeder
                 'email' => 'usuario@demo.com',
                 'password' => Hash::make('demo123'),
                 'company_id' => $company->id,
+                'role_id' => $supervisorRole->id,  // ← SUPERVISOR
+                'employee_code' => 'SUP001',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
@@ -45,6 +60,8 @@ class UserSeeder extends Seeder
                 'email' => 'maria@bodegaapp.com',
                 'password' => Hash::make('maria123'),
                 'company_id' => $company->id,
+                'role_id' => $sellerRole->id,  // ← VENDEDOR
+                'employee_code' => 'VEN001',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
@@ -53,6 +70,8 @@ class UserSeeder extends Seeder
                 'email' => 'carlos@bodegaapp.com',
                 'password' => Hash::make('carlos123'),
                 'company_id' => $company->id,
+                'role_id' => $sellerRole->id,  // ← VENDEDOR
+                'employee_code' => 'VEN002',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
@@ -61,6 +80,8 @@ class UserSeeder extends Seeder
                 'email' => 'ana@bodegaapp.com',
                 'password' => Hash::make('ana123'),
                 'company_id' => $company->id,
+                'role_id' => $supervisorRole->id,  // ← SUPERVISOR
+                'employee_code' => 'SUP002',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
@@ -75,10 +96,11 @@ class UserSeeder extends Seeder
 
         echo "✅ Usuarios de prueba creados exitosamente!\n";
         echo "📧 Credenciales disponibles:\n";
-        echo "   • admin@bodegaapp.com / password123\n";
-        echo "   • usuario@demo.com / demo123\n";
-        echo "   • maria@bodegaapp.com / maria123\n";
-        echo "   • carlos@bodegaapp.com / carlos123\n";
-        echo "   • ana@bodegaapp.com / ana123\n";
+        echo "   🔑 ADMIN: admin@bodegaapp.com / password123 (Acceso completo)\n";
+        echo "   👥 SUPERVISOR: usuario@demo.com / demo123 (Reportes + inventario)\n";
+        echo "   🛒 VENDEDOR: maria@bodegaapp.com / maria123 (Solo ventas)\n";
+        echo "   🛒 VENDEDOR: carlos@bodegaapp.com / carlos123 (Solo ventas)\n";
+        echo "   👥 SUPERVISOR: ana@bodegaapp.com / ana123 (Reportes + inventario)\n";
+        echo "\n💡 Solo el usuario ADMIN puede acceder a 'Gestión de Datos'\n";
     }
 }

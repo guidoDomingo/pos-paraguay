@@ -13,6 +13,7 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\FiscalStampController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\DataManagementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -146,6 +147,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/printers', [PrinterController::class, 'getAvailablePrinters'])->name('printers.list');
     Route::post('/api/printers/test', [PrinterController::class, 'testPrinter'])->name('printers.test');
     Route::get('/api/printers/{printer}/status', [PrinterController::class, 'getPrinterStatus'])->name('printers.status');
+    
+    // Data Management - System Admin
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/data-management', [DataManagementController::class, 'index'])->name('data-management.index');
+        Route::get('/data-management/confirm', [DataManagementController::class, 'confirmClean'])->name('data-management.confirm');
+        Route::post('/data-management/clean', [DataManagementController::class, 'cleanData'])->name('data-management.clean');
+        Route::get('/data-management/backup', [DataManagementController::class, 'downloadBackup'])->name('data-management.backup');
+    });
 });
 
 require __DIR__.'/auth.php';

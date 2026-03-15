@@ -14,10 +14,11 @@ class DatabaseSeeder extends Seeder
         // Ejecutar seeders en orden de dependencias
         $this->call([
             CompanySeeder::class,      // Primero las empresas
+            RoleSeeder::class,         // Segundo los roles (antes de usuarios)
             CategorySeeder::class,     // Luego las categorías
             WarehouseSeeder::class,    // Almacenes
             ProductSeeder::class,      // Productos
-            UserSeeder::class,         // Usuarios (después de empresas)
+            UserSeeder::class,         // Usuarios (después de empresas y roles)
             FiscalStampSeeder::class,  // Timbres fiscales
         ]);
     }

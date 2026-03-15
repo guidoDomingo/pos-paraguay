@@ -58,6 +58,14 @@
                     </a>
                 </li>
                 <?php endif; ?>
+                <?php if(Route::has('admin.data-management.index') && auth()->user() && auth()->user()->hasPermission('admin.settings')): ?>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo e(request()->routeIs('admin.data-management.*') ? 'active' : ''); ?>" href="<?php echo e(route('admin.data-management.index')); ?>">
+                        <i class="bi bi-gear-fill me-1"></i>
+                        Gestión de Datos
+                    </a>
+                </li>
+                <?php endif; ?>
             </ul>
 
             <!-- User menu -->
