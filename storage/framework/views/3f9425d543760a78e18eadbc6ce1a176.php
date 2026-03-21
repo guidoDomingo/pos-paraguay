@@ -226,6 +226,10 @@
 </div>
 <?php endif; ?>
 
+<?php if($preview ?? false): ?>
+<script>window.onload = function(){ window.print(); }</script>
+<?php endif; ?>
+
 </body>
 </html>
 <?php /**PATH C:\laragon\www\bodega-app\resources\views/pdf/invoice.blade.php ENDPATH**/ ?>

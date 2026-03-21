@@ -226,5 +226,9 @@
 </div>
 @endif
 
+@if($preview ?? false)
+<script>window.onload = function(){ window.print(); }</script>
+@endif
+
 </body>
 </html>

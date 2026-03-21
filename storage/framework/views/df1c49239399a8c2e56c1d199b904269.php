@@ -23,10 +23,11 @@
             company_phone:    <?php echo \Illuminate\Support\Js::from($settings->company_phone ?? '')->toHtml() ?>,
             company_address:  <?php echo \Illuminate\Support\Js::from($settings->company_address ?? '')->toHtml() ?>,
             company_email:    <?php echo \Illuminate\Support\Js::from($settings->company_email ?? '')->toHtml() ?>,
-            ticket_prefix:    <?php echo \Illuminate\Support\Js::from($settings->ticket_prefix ?? 'T')->toHtml() ?>,
+                ticket_prefix:    <?php echo \Illuminate\Support\Js::from($settings->ticket_prefix ?? 'T')->toHtml() ?>,
             ticket_counter:   <?php echo e($settings->ticket_counter ?? 1); ?>,
             ticket_suffix:    <?php echo \Illuminate\Support\Js::from($settings->ticket_suffix ?? '')->toHtml() ?>,
             footer_text:      <?php echo \Illuminate\Support\Js::from($settings->footer_text ?? '')->toHtml() ?>,
+            paper_size:       <?php echo \Illuminate\Support\Js::from($settings->paper_size ?? 'A4')->toHtml() ?>,
         },
         ticketNumberPreview() {
             const num = String(this.s.ticket_counter).padStart(8, '0');
@@ -39,6 +40,17 @@
                 <div class="alert alert-success alert-dismissible fade show">
                     <i class="bi bi-check-circle me-2"></i><?php echo e(session('success')); ?>
 
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            <?php if($errors->any()): ?>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="bi bi-exclamation-circle me-2"></i><strong>Errores al guardar:</strong>
+                    <ul class="mb-0 mt-1">
+                        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <li><?php echo e($error); ?></li>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </ul>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
@@ -160,9 +172,10 @@
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <label class="form-label form-label-sm">Tamaño papel (factura)</label>
-                                        <select name="paper_size" class="form-select form-select-sm">
-                                            <option value="A4"     <?php echo e(($settings->paper_size ?? 'A4') === 'A4'     ? 'selected' : ''); ?>>A4</option>
-                                            <option value="Letter" <?php echo e(($settings->paper_size ?? '') === 'Letter' ? 'selected' : ''); ?>>Carta (Letter)</option>
+                                        <select name="paper_size" class="form-select form-select-sm" x-model="s.paper_size">
+                                            <option value="A4">A4 (doble copia)</option>
+                                            <option value="Letter">Carta - Letter (doble copia)</option>
+                                            <option value="Ticket">Ticket 80mm (ticketeadora)</option>
                                         </select>
                                     </div>
                                     <div class="col-6">
@@ -212,9 +225,9 @@
 
                             
                             <div x-show="activeTab==='factura'">
-                                <div style="background:#fff;border:2px solid #000;padding:8px;font-family:Arial,sans-serif;font-size:9px;color:#000;max-width:660px;margin:0 auto;">
 
-                                    
+                                
+                                <div x-show="s.paper_size !== 'Ticket'" style="background:#fff;border:2px solid #000;padding:8px;font-family:Arial,sans-serif;font-size:9px;color:#000;max-width:660px;margin:0 auto;">
                                     <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #000;margin-bottom:6px;">
                                         <tr>
                                             <td style="width:60%;border-right:2px solid #000;padding:4px 6px;vertical-align:top;">
@@ -243,18 +256,10 @@
                                             </td>
                                         </tr>
                                     </table>
-
-                                    
                                     <table style="width:100%;border-collapse:collapse;border:1px solid #000;margin-bottom:6px;">
                                         <tr>
-                                            <td style="width:55%;border:1px solid #000;padding:3px 5px;font-size:8px;">
-                                                Fecha de Emisión: <strong><?php echo e(now()->day); ?></strong> de <strong><?php echo e(now()->translatedFormat('F')); ?></strong> de <strong><?php echo e(now()->year); ?></strong>
-                                            </td>
-                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">
-                                                Cond. de Venta:
-                                                <span style="display:inline-block;width:9px;height:9px;border:1px solid #000;text-align:center;line-height:8px;font-size:7px;font-weight:bold;">X</span> Contado &nbsp;
-                                                <span style="display:inline-block;width:9px;height:9px;border:1px solid #000;"></span> Crédito
-                                            </td>
+                                            <td style="width:55%;border:1px solid #000;padding:3px 5px;font-size:8px;">Fecha de Emisión: <strong><?php echo e(now()->day); ?> de <?php echo e(now()->translatedFormat('F')); ?> de <?php echo e(now()->year); ?></strong></td>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">Cond. de Venta: <span style="display:inline-block;width:9px;height:9px;border:1px solid #000;text-align:center;line-height:8px;font-size:7px;font-weight:bold;">X</span> Contado &nbsp;<span style="display:inline-block;width:9px;height:9px;border:1px solid #000;"></span> Crédito</td>
                                         </tr>
                                         <tr>
                                             <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">Nombre o Razón Social: <strong>Juan Pérez</strong></td>
@@ -264,12 +269,8 @@
                                             <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">R.U.C.: <strong>1234567-8</strong></td>
                                             <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">Teléfono: <strong>0981 000 000</strong></td>
                                         </tr>
-                                        <tr>
-                                            <td colspan="2" style="border:1px solid #000;padding:3px 5px;font-size:8px;">Dirección: <strong>Av. España 123, Asunción</strong></td>
-                                        </tr>
+                                        <tr><td colspan="2" style="border:1px solid #000;padding:3px 5px;font-size:8px;">Dirección: <strong>Av. España 123, Asunción</strong></td></tr>
                                     </table>
-
-                                    
                                     <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:8px;">
                                         <thead>
                                             <tr>
@@ -285,63 +286,64 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr>
-                                                <td style="border:1px solid #000;padding:2px 3px;text-align:center;">2</td>
-                                                <td style="border:1px solid #000;padding:2px 3px;">Remera blanca talle M</td>
-                                                <td style="border:1px solid #000;padding:2px 3px;text-align:right;">25.000</td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;text-align:right;">50.000</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="border:1px solid #000;padding:2px 3px;text-align:center;">1</td>
-                                                <td style="border:1px solid #000;padding:2px 3px;">Pantalón negro talle L</td>
-                                                <td style="border:1px solid #000;padding:2px 3px;text-align:right;">80.000</td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;text-align:right;">80.000</td>
-                                            </tr>
-                                            <?php for($i=0;$i<8;$i++): ?>
-                                            <tr>
-                                                <td style="border:1px solid #000;padding:2px 3px;height:11px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
-                                            </tr>
-                                            <?php endfor; ?>
+                                            <tr><td style="border:1px solid #000;padding:2px 3px;text-align:center;">2</td><td style="border:1px solid #000;padding:2px 3px;">Remera blanca talle M</td><td style="border:1px solid #000;padding:2px 3px;text-align:right;">25.000</td><td style="border:1px solid #000;padding:2px 3px;"></td><td style="border:1px solid #000;padding:2px 3px;"></td><td style="border:1px solid #000;padding:2px 3px;text-align:right;">50.000</td></tr>
+                                            <tr><td style="border:1px solid #000;padding:2px 3px;text-align:center;">1</td><td style="border:1px solid #000;padding:2px 3px;">Pantalón negro talle L</td><td style="border:1px solid #000;padding:2px 3px;text-align:right;">80.000</td><td style="border:1px solid #000;padding:2px 3px;"></td><td style="border:1px solid #000;padding:2px 3px;"></td><td style="border:1px solid #000;padding:2px 3px;text-align:right;">80.000</td></tr>
+                                            <?php for($i=0;$i<6;$i++): ?><tr><td style="border:1px solid #000;padding:2px 3px;height:11px;"></td><td style="border:1px solid #000;padding:2px 3px;"></td><td style="border:1px solid #000;padding:2px 3px;"></td><td style="border:1px solid #000;padding:2px 3px;"></td><td style="border:1px solid #000;padding:2px 3px;"></td><td style="border:1px solid #000;padding:2px 3px;"></td></tr><?php endfor; ?>
                                         </tbody>
                                     </table>
-
-                                    
                                     <table style="width:100%;border-collapse:collapse;">
-                                        <tr>
-                                            <td style="border:1px solid #000;padding:3px 5px;font-weight:bold;width:55%;font-size:8.5px;">VALOR PARCIAL</td>
-                                            <td style="border:1px solid #000;padding:3px 5px;text-align:right;font-size:8.5px;">130.000</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="border:1px solid #000;padding:3px 5px;font-weight:bold;font-size:10px;">TOTAL A PAGAR Gs.</td>
-                                            <td style="border:1px solid #000;padding:3px 5px;text-align:right;font-weight:bold;font-size:10px;">130.000</td>
-                                        </tr>
+                                        <tr><td style="border:1px solid #000;padding:3px 5px;font-weight:bold;width:55%;font-size:8.5px;">VALOR PARCIAL</td><td style="border:1px solid #000;padding:3px 5px;text-align:right;font-size:8.5px;">130.000</td></tr>
+                                        <tr><td style="border:1px solid #000;padding:3px 5px;font-weight:bold;font-size:10px;">TOTAL A PAGAR Gs.</td><td style="border:1px solid #000;padding:3px 5px;text-align:right;font-weight:bold;font-size:10px;">130.000</td></tr>
+                                        <tr><td colspan="2" style="border:1px solid #000;padding:3px 5px;font-size:8px;">SON: <strong>CIENTO TREINTA MIL GUARANÍES</strong></td></tr>
                                     </table>
                                     <table style="width:100%;border-collapse:collapse;">
-                                        <tr>
-                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8.5px;width:55%;">
-                                                TOTAL IVA: &nbsp;<strong>11.818</strong>
-                                            </td>
-                                            <td style="border:1px solid #000;padding:3px 5px;font-size:7.5px;text-align:right;font-weight:bold;">
-                                                Original: Comprador &nbsp;|&nbsp; Primera Copia: Arch. Tributario
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="2" style="border:1px solid #000;padding:3px 5px;font-size:8.5px;">
-                                                Liquidación del IVA:&nbsp; (5 %) <strong>0</strong> &nbsp;&nbsp;&nbsp; (10 %) <strong>11.818</strong>
-                                            </td>
-                                        </tr>
+                                        <tr><td style="border:1px solid #000;padding:3px 5px;font-size:8.5px;width:55%;">TOTAL IVA: &nbsp;<strong>11.818</strong></td><td style="border:1px solid #000;padding:3px 5px;font-size:7.5px;text-align:right;font-weight:bold;">Original: Comprador &nbsp;|&nbsp; Primera Copia: Arch. Tributario</td></tr>
+                                        <tr><td colspan="2" style="border:1px solid #000;padding:3px 5px;font-size:8.5px;">Liquidación del IVA:&nbsp; (5 %) <strong>0</strong> &nbsp;&nbsp;&nbsp; (10 %) <strong>11.818</strong></td></tr>
                                     </table>
                                     <div x-show="s.footer_text" style="font-size:7.5px;color:#555;margin-top:4px;text-align:center;" x-text="s.footer_text"></div>
                                 </div>
+
+                                
+                                <div x-show="s.paper_size === 'Ticket'" style="background:#fff;border:1px solid #ccc;padding:10px;font-family:'Courier New',monospace;font-size:10px;color:#000;max-width:280px;margin:0 auto;">
+                                    <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;">
+                                        <div style="font-size:13px;font-weight:bold;text-transform:uppercase;" x-text="s.company_name || 'NOMBRE EMPRESA'"></div>
+                                        <div style="font-size:8px;" x-show="s.company_activity" x-text="s.company_activity"></div>
+                                        <div style="font-size:8px;" x-show="s.company_phone" x-text="'Tel: '+s.company_phone"></div>
+                                        <div style="font-size:8px;" x-show="s.company_address" x-text="s.company_address"></div>
+                                    </div>
+                                    <div style="text-align:center;margin-bottom:8px;">
+                                        <?php if($fiscalStamp): ?>
+                                            <div style="font-size:8px;font-weight:bold;">TIMBRADO Nº <?php echo e($fiscalStamp->stamp_number); ?></div>
+                                        <?php endif; ?>
+                                        <div style="font-size:8px;" x-text="'RUC: '+(s.company_ruc||'0000000')"></div>
+                                        <div style="font-size:16px;font-weight:bold;letter-spacing:2px;">FACTURA</div>
+                                        <div style="border:2px solid #000;display:inline-block;padding:2px 6px;font-size:11px;font-weight:bold;margin-top:3px;">001-001-0000001</div>
+                                    </div>
+                                    <div style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:4px 0;margin-bottom:6px;font-size:8.5px;">
+                                        <div>Fecha: <strong><?php echo e(now()->day); ?> de <?php echo e(now()->translatedFormat('F')); ?> de <?php echo e(now()->year); ?></strong></div>
+                                        <div>Cond.: <strong>CONTADO</strong></div>
+                                        <div>Cliente: <strong>Juan Pérez</strong></div>
+                                        <div>RUC: <strong>1234567-8</strong></div>
+                                    </div>
+                                    <div style="border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;">
+                                        <div style="margin-bottom:4px;"><div style="font-weight:bold;font-size:9px;">Remera blanca talle M</div><div style="display:table;width:100%;font-size:8.5px;"><span style="display:table-cell;">2 x Gs. 25.000 (10%)</span><span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 50.000</span></div></div>
+                                        <div style="border-top:1px dotted #ccc;padding-top:4px;"><div style="font-weight:bold;font-size:9px;">Pantalón negro talle L</div><div style="display:table;width:100%;font-size:8.5px;"><span style="display:table-cell;">1 x Gs. 80.000 (10%)</span><span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 80.000</span></div></div>
+                                    </div>
+                                    <div style="border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;font-size:9px;">
+                                        <div style="display:table;width:100%;"><span style="display:table-cell;">Valor Parcial:</span><span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 130.000</span></div>
+                                        <div style="display:table;width:100%;border-top:2px solid #000;margin-top:4px;padding-top:4px;font-size:11px;font-weight:bold;"><span style="display:table-cell;">TOTAL:</span><span style="display:table-cell;text-align:right;">Gs. 130.000</span></div>
+                                    </div>
+                                    <div style="font-size:8px;font-style:italic;margin-bottom:6px;">SON: CIENTO TREINTA MIL GUARANÍES</div>
+                                    <div style="border-top:1px dashed #000;padding-top:4px;font-size:8px;">
+                                        <div>TOTAL IVA: <strong>Gs. 11.818</strong></div>
+                                        <div>Liq. IVA: (5%) <strong>0</strong> &nbsp; (10%) <strong>11.818</strong></div>
+                                    </div>
+                                    <div style="text-align:center;font-size:8px;margin-top:6px;border-top:1px dashed #000;padding-top:6px;">
+                                        <div style="font-weight:bold;">Original: Comprador | Copia: Arch. Tributario</div>
+                                        <div x-show="s.footer_text" x-text="s.footer_text" style="margin-top:3px;font-style:italic;"></div>
+                                    </div>
+                                </div>
+
                             </div>
 
                             

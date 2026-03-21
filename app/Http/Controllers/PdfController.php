@@ -13,27 +13,30 @@ class PdfController extends Controller
     {
         $sale = Sale::with(['items', 'invoice.fiscalStamp', 'company', 'user'])->findOrFail($saleId);
         $settings = InvoiceSetting::getSettings();
-        
-        // Obtener la factura asociada
+
         $invoice = $sale->invoice;
-        
         if (!$invoice) {
             abort(404, 'No se encontró la factura asociada a esta venta');
         }
-
-        // Cargar items de la factura si no están cargados
         $invoice->load(['items', 'fiscalStamp']);
 
-        $paperSize = ($settings->paper_size && $settings->paper_size !== 'Ticket')
-            ? $settings->paper_size
-            : 'letter';
-
-        $pdf = Pdf::loadView('pdf.invoice', compact('sale', 'invoice', 'settings'))
-            ->setPaper($paperSize, $settings->orientation ?? 'portrait')
-            ->setOption('margin-top', 0)
-            ->setOption('margin-bottom', 0)
-            ->setOption('margin-left', 0)
-            ->setOption('margin-right', 0);
+        if ($settings->paper_size === 'Ticket') {
+            // Formato ticket 80mm para ticketeadoras
+            $pdf = Pdf::loadView('pdf.invoice-ticket', compact('sale', 'invoice', 'settings'))
+                ->setPaper([0, 0, 226.77, 1000], 'portrait') // 80mm ancho, altura generosa
+                ->setOption('margin-top', 0)
+                ->setOption('margin-bottom', 0)
+                ->setOption('margin-left', 0)
+                ->setOption('margin-right', 0);
+        } else {
+            $paperSize = in_array($settings->paper_size, ['A4', 'Letter']) ? $settings->paper_size : 'A4';
+            $pdf = Pdf::loadView('pdf.invoice', compact('sale', 'invoice', 'settings'))
+                ->setPaper($paperSize, $settings->orientation ?? 'portrait')
+                ->setOption('margin-top', 0)
+                ->setOption('margin-bottom', 0)
+                ->setOption('margin-left', 0)
+                ->setOption('margin-right', 0);
+        }
 
         return $pdf->download('factura_' . $invoice->invoice_number . '.pdf');
     }
@@ -42,13 +45,12 @@ class PdfController extends Controller
     {
         $sale = Sale::with('items')->findOrFail($saleId);
         $settings = InvoiceSetting::getSettings();
-        
-        // Actualizar número de ticket
+
         $ticketNumber = $settings->getNextTicketNumber();
         $sale->update(['ticket_number' => $ticketNumber]);
 
         $pdf = Pdf::loadView('pdf.ticket', compact('sale', 'settings'))
-            ->setPaper([0, 0, 283.46, 841.89], 'portrait') // Tamaño ticket 100mm ancho x 297mm alto
+            ->setPaper([0, 0, 283.46, 841.89], 'portrait')
             ->setOption('margin-top', 5)
             ->setOption('margin-bottom', 5)
             ->setOption('margin-left', 5)
@@ -62,23 +64,22 @@ class PdfController extends Controller
         $sale = Sale::with(['items', 'invoice.fiscalStamp', 'invoice.items', 'company', 'user'])->findOrFail($saleId);
         $settings = InvoiceSetting::getSettings();
 
-        // Obtener la factura asociada
         $invoice = $sale->invoice;
-
         if (!$invoice) {
             abort(404, 'No se encontró la factura asociada a esta venta');
         }
-
         $invoice->load(['items', 'fiscalStamp']);
 
-        return view('pdf.invoice', compact('sale', 'invoice', 'settings'));
+        $preview = true;
+        $template = $settings->paper_size === 'Ticket' ? 'pdf.invoice-ticket' : 'pdf.invoice';
+        return view($template, compact('sale', 'invoice', 'settings', 'preview'));
     }
 
     public function previewTicket($saleId)
     {
         $sale = Sale::with('items')->findOrFail($saleId);
         $settings = InvoiceSetting::getSettings();
-        
+
         return view('pdf.ticket', compact('sale', 'settings'));
     }
 }
