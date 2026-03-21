@@ -21,8 +21,19 @@ class PdfController extends Controller
             abort(404, 'No se encontró la factura asociada a esta venta');
         }
 
+        // Cargar items de la factura si no están cargados
+        $invoice->load(['items', 'fiscalStamp']);
+
+        $paperSize = ($settings->paper_size && $settings->paper_size !== 'Ticket')
+            ? $settings->paper_size
+            : 'letter';
+
         $pdf = Pdf::loadView('pdf.invoice', compact('sale', 'invoice', 'settings'))
-            ->setPaper($settings->paper_size === 'Ticket' ? [0, 0, 226.77, 841.89] : $settings->paper_size, $settings->orientation);
+            ->setPaper($paperSize, $settings->orientation ?? 'portrait')
+            ->setOption('margin-top', 0)
+            ->setOption('margin-bottom', 0)
+            ->setOption('margin-left', 0)
+            ->setOption('margin-right', 0);
 
         return $pdf->download('factura_' . $invoice->invoice_number . '.pdf');
     }
@@ -48,16 +59,18 @@ class PdfController extends Controller
 
     public function previewInvoice($saleId)
     {
-        $sale = Sale::with(['items', 'invoice.fiscalStamp', 'company', 'user'])->findOrFail($saleId);
+        $sale = Sale::with(['items', 'invoice.fiscalStamp', 'invoice.items', 'company', 'user'])->findOrFail($saleId);
         $settings = InvoiceSetting::getSettings();
-        
+
         // Obtener la factura asociada
         $invoice = $sale->invoice;
-        
+
         if (!$invoice) {
             abort(404, 'No se encontró la factura asociada a esta venta');
         }
-        
+
+        $invoice->load(['items', 'fiscalStamp']);
+
         return view('pdf.invoice', compact('sale', 'invoice', 'settings'));
     }
 

@@ -72,7 +72,7 @@ class PosTerminal extends Component
         'cash_received' => 'required_if:payment_method,CASH|numeric|min:0',
         'sale_type' => 'required|in:TICKET,INVOICE',
         'document_type' => 'required|in:ticket,factura',
-        'payment_method' => 'required|in:CASH,CARD,TRANSFER,CREDIT',
+        'payment_method' => 'required|in:CASH,CARD,TRANSFER,CREDIT,CHEQUE',
         'send_electronic' => 'boolean',
     ];
 
@@ -141,6 +141,15 @@ class PosTerminal extends Component
             $this->amount_paid = 0;
         } else {
             $this->amount_paid = is_numeric($this->amount_paid) ? (float) $this->amount_paid : 0;
+        }
+        $this->calculateTotals();
+    }
+
+    public function updatedPaymentMethod()
+    {
+        // Cheque siempre implica Crédito
+        if ($this->payment_method === 'CHEQUE') {
+            $this->sale_condition = 'CREDITO';
         }
         $this->calculateTotals();
     }
@@ -485,7 +494,7 @@ class PosTerminal extends Component
             // Crear venta
             $sale = Sale::create([
                 'company_id' => Auth::user()->company_id,
-                'warehouse_id' => Auth::user()->warehouse_id ?? 1,
+                'warehouse_id' => Auth::user()->warehouse_id ?? null,
                 'user_id' => Auth::id(),
                 'customer_id' => $this->customer_id,
                 'sale_number' => $this->generateSaleNumber(),
@@ -530,21 +539,20 @@ class PosTerminal extends Component
                 }
             }
 
-            // Crear Invoice y procesar facturación electrónica si es necesario
-            // Solo se genera factura si el pago está completado (CONTADO o crédito pagado)
-            if ($this->document_type === 'factura' && $this->sale_condition === 'CONTADO') {
+            // Crear Invoice si el tipo de comprobante es factura
+            if ($this->document_type === 'factura') {
                 $invoice = $this->createInvoiceFromSale($sale);
-                
-                // Enviar a FacturaSend si está habilitado
-                if ($this->send_electronic && $this->facturasend_enabled) {
+
+                // Enviar a FacturaSend si está habilitado (solo contado)
+                if ($this->send_electronic && $this->facturasend_enabled && $this->sale_condition === 'CONTADO') {
                     $this->processElectronicInvoice($invoice);
                 }
             }
 
             DB::commit();
 
-            $successMessage = $this->sale_condition === 'CREDITO' 
-                ? 'Venta a crédito registrada. Estado: PENDIENTE. Complete el pago para generar factura.' 
+            $successMessage = $this->sale_condition === 'CREDITO'
+                ? 'Venta a crédito registrada correctamente. Estado: PENDIENTE.'
                 : 'Venta procesada exitosamente';
             
             session()->flash('success', $successMessage);

@@ -1,14 +1,24 @@
-<x-app-layout>
-    <x-slot name="header">
+<?php if (isset($component)) { $__componentOriginal4619374cef299e94fd7263111d0abc69 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal4619374cef299e94fd7263111d0abc69 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.app-layout','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component->withName('app-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
+<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+     <?php $__env->slot('header', null, []); ?> 
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="h4 font-weight-bold mb-0">
-                <i class="bi bi-plus-circle me-2"></i>{{ __('Nuevo Timbrado Fiscal') }}
+                <i class="bi bi-plus-circle me-2"></i><?php echo e(__('Nuevo Timbrado Fiscal')); ?>
+
             </h2>
-            <a href="{{ route('fiscal-stamps.index') }}" class="btn btn-outline-secondary">
+            <a href="<?php echo e(route('fiscal-stamps.index')); ?>" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-1"></i>Volver
             </a>
         </div>
-    </x-slot>
+     <?php $__env->endSlot(); ?>
 
     <div class="py-4">
         <div class="container-fluid">
@@ -22,20 +32,20 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <form method="POST" action="{{ route('fiscal-stamps.store') }}">
-                                @csrf
+                            <form method="POST" action="<?php echo e(route('fiscal-stamps.store')); ?>">
+                                <?php echo csrf_field(); ?>
 
-                                @if($errors->any())
+                                <?php if($errors->any()): ?>
                                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                         <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Por favor corrija los siguientes errores:</h6>
                                         <ul class="mb-0">
-                                            @foreach($errors->all() as $error)
-                                                <li>{{ $error }}</li>
-                                            @endforeach
+                                            <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                <li><?php echo e($error); ?></li>
+                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                         </ul>
                                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                     </div>
-                                @endif
+                                <?php endif; ?>
                                 
                                 <!-- Número de Timbrado -->
                                 <div class="card mb-4">
@@ -45,12 +55,26 @@
                                     <div class="card-body">
                                         <div class="mb-3">
                                             <label for="stamp_number" class="form-label">Número de Timbrado <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control @error('stamp_number') is-invalid @enderror" 
-                                                   id="stamp_number" name="stamp_number" value="{{ old('stamp_number') }}" 
+                                            <input type="text" class="form-control <?php $__errorArgs = ['stamp_number'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                                   id="stamp_number" name="stamp_number" value="<?php echo e(old('stamp_number')); ?>" 
                                                    placeholder="Ej: 12345678" required maxlength="20">
-                                            @error('stamp_number')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                            <?php $__errorArgs = ['stamp_number'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                             <small class="form-text text-muted">
                                                 Ingrese el número de timbrado otorgado por la SET.
                                             </small>
@@ -60,21 +84,49 @@
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label for="valid_from" class="form-label">Fecha de Inicio de Vigencia <span class="text-danger">*</span></label>
-                                                    <input type="date" class="form-control @error('valid_from') is-invalid @enderror" 
-                                                           id="valid_from" name="valid_from" value="{{ old('valid_from') }}" required>
-                                                    @error('valid_from')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                                    <input type="date" class="form-control <?php $__errorArgs = ['valid_from'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                                           id="valid_from" name="valid_from" value="<?php echo e(old('valid_from')); ?>" required>
+                                                    <?php $__errorArgs = ['valid_from'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label for="valid_until" class="form-label">Fecha de Fin de Vigencia <span class="text-danger">*</span></label>
-                                                    <input type="date" class="form-control @error('valid_until') is-invalid @enderror" 
-                                                           id="valid_until" name="valid_until" value="{{ old('valid_until') }}" required>
-                                                    @error('valid_until')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                                    <input type="date" class="form-control <?php $__errorArgs = ['valid_until'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                                           id="valid_until" name="valid_until" value="<?php echo e(old('valid_until')); ?>" required>
+                                                    <?php $__errorArgs = ['valid_until'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -91,12 +143,26 @@
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label for="establishment" class="form-label">Establecimiento <span class="text-danger">*</span></label>
-                                                    <input type="text" class="form-control @error('establishment') is-invalid @enderror" 
-                                                           id="establishment" name="establishment" value="{{ old('establishment') }}" 
+                                                    <input type="text" class="form-control <?php $__errorArgs = ['establishment'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                                           id="establishment" name="establishment" value="<?php echo e(old('establishment')); ?>" 
                                                            placeholder="001" required maxlength="3" pattern="[0-9]{3}">
-                                                    @error('establishment')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                                    <?php $__errorArgs = ['establishment'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                     <small class="form-text text-muted">
                                                         Código de 3 dígitos del establecimiento.
                                                     </small>
@@ -105,12 +171,26 @@
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label for="point_of_sale" class="form-label">Punto de Venta/Expedición <span class="text-danger">*</span></label>
-                                                    <input type="text" class="form-control @error('point_of_sale') is-invalid @enderror" 
-                                                           id="point_of_sale" name="point_of_sale" value="{{ old('point_of_sale') }}" 
+                                                    <input type="text" class="form-control <?php $__errorArgs = ['point_of_sale'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                                           id="point_of_sale" name="point_of_sale" value="<?php echo e(old('point_of_sale')); ?>" 
                                                            placeholder="001" required maxlength="3" pattern="[0-9]{3}">
-                                                    @error('point_of_sale')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                                    <?php $__errorArgs = ['point_of_sale'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                     <small class="form-text text-muted">
                                                         Código de 3 dígitos del punto de expedición.
                                                     </small>
@@ -135,13 +215,27 @@
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label for="current_invoice_number" class="form-label">Número de Factura Inicial <span class="text-danger">*</span></label>
-                                                    <input type="number" class="form-control @error('current_invoice_number') is-invalid @enderror" 
+                                                    <input type="number" class="form-control <?php $__errorArgs = ['current_invoice_number'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
                                                            id="current_invoice_number" name="current_invoice_number" 
-                                                           value="{{ old('current_invoice_number', 0) }}" 
+                                                           value="<?php echo e(old('current_invoice_number', 0)); ?>" 
                                                            min="0" required>
-                                                    @error('current_invoice_number')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                                    <?php $__errorArgs = ['current_invoice_number'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                     <small class="form-text text-muted">
                                                         Normalmente se inicia en 0. Si ya emitió facturas con este timbrado, ingrese el último número usado.
                                                     </small>
@@ -150,13 +244,27 @@
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label for="max_invoice_number" class="form-label">Número Máximo de Facturas <span class="text-danger">*</span></label>
-                                                    <input type="number" class="form-control @error('max_invoice_number') is-invalid @enderror" 
+                                                    <input type="number" class="form-control <?php $__errorArgs = ['max_invoice_number'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
                                                            id="max_invoice_number" name="max_invoice_number" 
-                                                           value="{{ old('max_invoice_number') }}" 
+                                                           value="<?php echo e(old('max_invoice_number')); ?>" 
                                                            min="1" required>
-                                                    @error('max_invoice_number')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                                    <?php $__errorArgs = ['max_invoice_number'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                                                     <small class="form-text text-muted">
                                                         Cantidad máxima de facturas permitidas con este timbrado.
                                                     </small>
@@ -179,7 +287,7 @@
                                     <div class="card-body">
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
-                                                   value="1" {{ old('is_active', true) ? 'checked' : '' }}>
+                                                   value="1" <?php echo e(old('is_active', true) ? 'checked' : ''); ?>>
                                             <label class="form-check-label" for="is_active">
                                                 <strong>Timbrado activo</strong>
                                             </label>
@@ -205,7 +313,7 @@
 
                                 <!-- Botones -->
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('fiscal-stamps.index') }}" class="btn btn-secondary">
+                                    <a href="<?php echo e(route('fiscal-stamps.index')); ?>" class="btn btn-secondary">
                                         <i class="bi bi-x-circle me-1"></i>Cancelar
                                     </a>
                                     <button type="submit" class="btn btn-primary">
@@ -301,4 +409,14 @@
             updateAvailableRange();
         });
     </script>
-</x-app-layout>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal4619374cef299e94fd7263111d0abc69)): ?>
+<?php $attributes = $__attributesOriginal4619374cef299e94fd7263111d0abc69; ?>
+<?php unset($__attributesOriginal4619374cef299e94fd7263111d0abc69); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal4619374cef299e94fd7263111d0abc69)): ?>
+<?php $component = $__componentOriginal4619374cef299e94fd7263111d0abc69; ?>
+<?php unset($__componentOriginal4619374cef299e94fd7263111d0abc69); ?>
+<?php endif; ?>
+<?php /**PATH C:\laragon\www\bodega-app\resources\views/fiscal-stamps/create.blade.php ENDPATH**/ ?>

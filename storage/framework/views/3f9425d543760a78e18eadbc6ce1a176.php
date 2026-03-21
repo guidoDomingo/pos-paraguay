@@ -2,342 +2,230 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factura #<?php echo e($invoice->invoice_number); ?></title>
+    <title>Factura <?php echo e($invoice->invoice_number); ?></title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Courier New', monospace;
-            margin: 0;
-            padding: 10px;
-            font-size: 11px;
-            line-height: 1.3;
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            color: #000;
+            background: #fff;
         }
-        .invoice-container {
+
+        /* ── PÁGINA COMPLETA ── */
+        .page-wrap {
+            width: 210mm;
+            height: 297mm;
+            overflow: hidden;
+        }
+
+        /* ── MITAD DE PÁGINA (una copia) ── */
+        .copy-half {
+            height: 144mm;
+            overflow: hidden;
+            padding: 3.5mm;
+        }
+
+        /* ── SEPARADOR CENTRAL ── */
+        .cut-separator {
+            height: 9mm;
+            border-top: 2px dashed #444;
+            border-bottom: 2px dashed #444;
+            text-align: center;
+            font-size: 7.5px;
+            color: #555;
+            letter-spacing: 2px;
+            line-height: 9mm;
+        }
+
+        /* ── BLOQUE DE FACTURA ── */
+        .invoice-block {
             border: 2px solid #000;
-            padding: 10px;
+            padding: 4px 6px;
+            height: 100%;
+            overflow: hidden;
         }
-        .header {
-            text-align: center;
+
+        /* ── CABECERA ── */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
             border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 3px;
         }
-        .company-name {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-        .company-info {
-            font-size: 10px;
-            margin: 2px 0;
-        }
-        .invoice-title {
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            margin: 8px 0;
-            padding: 5px;
-            background: #f0f0f0;
-        }
-        .fiscal-info {
-            border: 1px solid #000;
-            padding: 8px;
-            margin-bottom: 10px;
-            background: #f9f9f9;
-        }
-        .fiscal-info-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 3px 0;
-            font-size: 10px;
-        }
-        .fiscal-info-row strong {
-            min-width: 120px;
-        }
-        .section-title {
-            font-weight: bold;
-            font-size: 11px;
-            margin: 10px 0 5px 0;
-            padding: 3px 5px;
-            background: #e0e0e0;
-            border-left: 3px solid #000;
-        }
-        .info-row {
-            margin: 3px 0;
-            font-size: 10px;
-        }
-        .info-row strong {
+        .header-table td { vertical-align: top; padding: 2px 5px; }
+        .header-left  { width: 58%; border-right: 2px solid #000; }
+        .header-right { width: 42%; text-align: center; }
+
+        .company-name     { font-size: 11px; font-weight: bold; text-decoration: underline; margin-bottom: 1px; color: #000; }
+        .company-sub      { font-size: 7.5px; margin-bottom: 1px; color: #000; }
+
+        .stamp-label   { font-size: 7.5px; font-weight: bold; }
+        .stamp-number  { font-size: 9px; font-weight: bold; margin-bottom: 1px; }
+        .ruc-line      { font-size: 8.5px; margin-bottom: 1px; }
+        .factura-title { font-size: 17px; font-weight: bold; letter-spacing: 2px; margin: 1px 0; }
+        .vigencia-line { font-size: 7px; margin-bottom: 1px; }
+
+        .invoice-number-box {
+            border: 2px solid #000;
             display: inline-block;
-            min-width: 100px;
+            padding: 2px 7px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-top: 2px;
+            letter-spacing: 1px;
         }
+
+        /* ── DATOS DEL CLIENTE ── */
+        .client-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            margin-bottom: 3px;
+        }
+        .client-table td {
+            padding: 1px 4px;
+            border: 1px solid #000;
+            font-size: 8px;
+        }
+        .check-box {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border: 1px solid #000;
+            margin-right: 2px;
+            text-align: center;
+            line-height: 8px;
+            font-size: 7px;
+            font-weight: bold;
+        }
+
+        /* ── TABLA DE ÍTEMS ── */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
-            font-size: 9px;
+            margin-bottom: 0;
+            font-size: 7.5px;
         }
         .items-table th {
-            background-color: #e0e0e0;
-            padding: 5px 3px;
-            text-align: left;
             border: 1px solid #000;
+            padding: 1px 3px;
+            text-align: center;
             font-weight: bold;
         }
         .items-table td {
-            padding: 4px 3px;
             border: 1px solid #000;
+            padding: 0px 3px;
+            height: 10px;
         }
-        .text-right {
-            text-align: right;
+        .col-cant  { width: 7%;  text-align: center; }
+        .col-desc  { width: 46%; }
+        .col-pu    { width: 13%; text-align: right; }
+        .col-exent { width: 12%; text-align: right; }
+        .col-5     { width: 10%; text-align: right; }
+        .col-10    { width: 12%; text-align: right; }
+
+        /* ── TOTALES ── */
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .text-center {
-            text-align: center;
-        }
-        .totals-section {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 2px solid #000;
-        }
-        .totals-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 3px 0;
-            font-size: 10px;
-        }
-        .totals-row.total-final {
-            font-weight: bold;
-            font-size: 12px;
-            background: #e0e0e0;
-            padding: 5px;
-            margin-top: 5px;
-        }
-        .footer {
-            margin-top: 15px;
-            padding-top: 10px;
-            border-top: 1px solid #000;
-            text-align: center;
+        .totals-table td {
+            border: 1px solid #000;
+            padding: 1px 4px;
             font-size: 8px;
         }
-        .stamp-box {
-            border: 2px solid #000;
-            padding: 8px;
+        .label-cell  { font-weight: bold; width: 55%; }
+        .amount-cell { text-align: right; width: 45%; }
+
+        /* ── LIQUIDACIÓN IVA ── */
+        .iva-footer {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .iva-footer td {
+            border: 1px solid #000;
+            padding: 1px 4px;
+            font-size: 7.5px;
+        }
+
+        /* ── PIE ── */
+        .footer-text {
+            font-size: 7px;
+            color: #555;
             text-align: center;
-            margin: 10px 0;
-            background: #fff;
-        }
-        .stamp-number {
-            font-size: 14px;
-            font-weight: bold;
-            margin: 5px 0;
-        }
-        .stamp-dates {
-            font-size: 9px;
-            margin: 3px 0;
+            margin-top: 2px;
         }
     </style>
 </head>
 <body>
-    <div class="invoice-container">
-        <!-- Header with Company Info -->
-        <div class="header">
-            <div class="company-name"><?php echo e($sale->company->name ?? $settings->company_name); ?></div>
-            <div class="company-info">
-                <strong>RUC:</strong> <?php echo e($sale->company->ruc ?? $settings->company_ruc); ?>
 
-            </div>
-            <?php if($sale->company->address ?? $settings->company_address): ?>
-                <div class="company-info"><?php echo e($sale->company->address ?? $settings->company_address); ?></div>
-            <?php endif; ?>
-            <?php if($sale->company->phone ?? $settings->company_phone): ?>
-                <div class="company-info">Tel: <?php echo e($sale->company->phone ?? $settings->company_phone); ?></div>
-            <?php endif; ?>
-            <?php if($sale->company->economic_activity ?? $settings->company_activity): ?>
-                <div class="company-info"><?php echo e($sale->company->economic_activity ?? $settings->company_activity); ?></div>
-            <?php endif; ?>
-        </div>
+<?php
+    $companyName     = $settings->company_name     ?? '';
+    $companyActivity = $settings->company_activity ?? '';
+    $companyPhone    = $settings->company_phone    ?? '';
+    $companyAddress  = $settings->company_address  ?? '';
+    $companyRuc      = $settings->company_ruc      ?? '';
 
-        <!-- Invoice Title -->
-        <div class="invoice-title">FACTURA</div>
+    $fecha     = \Carbon\Carbon::parse($invoice->invoice_date);
+    $meses     = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    $mesNombre = $meses[$fecha->month - 1];
 
-        <!-- Fiscal Stamp Information -->
-        <?php if($invoice->fiscalStamp): ?>
-        <div class="stamp-box">
-            <div style="font-weight: bold; font-size: 10px;">TIMBRADO</div>
-            <div class="stamp-number"><?php echo e($invoice->fiscalStamp->stamp_number); ?></div>
-            <div class="stamp-dates">
-                Validez: <?php echo e($invoice->fiscalStamp->valid_from->format('d/m/Y')); ?> al <?php echo e($invoice->fiscalStamp->valid_until->format('d/m/Y')); ?>
+    $esContado = strtoupper($invoice->condition ?? '') === 'CONTADO';
+    $esCredito = !$esContado;
 
-            </div>
-        </div>
-        <?php endif; ?>
+    $valorParcial = ($invoice->subtotal_exento ?? 0)
+                  + ($invoice->subtotal_iva_5  ?? 0)
+                  + ($invoice->subtotal_iva_10 ?? 0);
 
-        <!-- Invoice Number -->
-        <div class="fiscal-info">
-            <div class="fiscal-info-row">
-                <strong>Nº Factura:</strong>
-                <span style="font-weight: bold; font-size: 12px;"><?php echo e($invoice->invoice_number); ?></span>
-            </div>
-            <div class="fiscal-info-row">
-                <strong>Fecha:</strong>
-                <span><?php echo e($invoice->invoice_date->format('d/m/Y H:i')); ?></span>
-            </div>
-            <div class="fiscal-info-row">
-                <strong>Condición de Venta:</strong>
-                <span><?php echo e(strtoupper($invoice->condition)); ?></span>
-            </div>
-        </div>
+    $isA4 = in_array(strtolower($settings->paper_size ?? 'letter'), ['a4', 'letter']);
 
-        <!-- Customer Information -->
-        <div class="section-title">DATOS DEL CLIENTE</div>
-        <div style="padding: 5px 0;">
-            <div class="info-row">
-                <strong>Nombre:</strong> <?php echo e($invoice->customer_name ?? 'CONTRIBUYENTE GENERAL'); ?>
+    // Filas vacías para rellenar la mitad de la página
+    // Calculado para ~133mm de área de ítems disponible
+    $targetRows = $isA4 ? 14 : 10;
+    $emptyRows  = max(0, $targetRows - count($invoice->items));
+?>
 
-            </div>
-            <?php if($invoice->customer_ruc): ?>
-            <div class="info-row">
-                <strong>RUC/CI:</strong> <?php echo e($invoice->customer_ruc); ?>
+<?php if($isA4): ?>
 
-            </div>
-            <?php endif; ?>
-            <?php if($invoice->customer_address): ?>
-            <div class="info-row">
-                <strong>Dirección:</strong> <?php echo e($invoice->customer_address); ?>
+<div class="page-wrap">
 
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Items Detail -->
-        <div class="section-title">DETALLE DE LA OPERACIÓN</div>
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th style="width: 10%;">Cant.</th>
-                    <th style="width: 50%;">Descripción</th>
-                    <th style="width: 15%;" class="text-right">P. Unit.</th>
-                    <th style="width: 10%;" class="text-center">IVA</th>
-                    <th style="width: 15%;" class="text-right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php $__currentLoopData = $invoice->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <tr>
-                    <td class="text-center"><?php echo e(number_format($item->quantity, 0)); ?></td>
-                    <td><?php echo e($item->product_name); ?></td>
-                    <td class="text-right"><?php echo e(number_format($item->unit_price, 0, ',', '.')); ?></td>
-                    <td class="text-center">
-                        <?php if($item->iva_type === 'IVA_10'): ?>
-                            10%
-                        <?php elseif($item->iva_type === 'IVA_5'): ?>
-                            5%
-                        <?php else: ?>
-                            EXENTO
-                        <?php endif; ?>
-                    </td>
-                    <td class="text-right"><?php echo e(number_format($item->total_price, 0, ',', '.')); ?></td>
-                </tr>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            </tbody>
-        </table>
-
-        <!-- Totals Section - Formato Paraguayo -->
-        <div class="totals-section">
-            <?php if($invoice->subtotal_exento > 0): ?>
-            <div class="totals-row">
-                <span>TOTAL EXENTA</span>
-                <span><?php echo e(number_format($invoice->subtotal_exento, 0, ',', '.')); ?></span>
-            </div>
-            <?php endif; ?>
-            
-            <?php if($invoice->subtotal_iva_5 > 0 || $invoice->total_iva_5 > 0): ?>
-            <div class="totals-row">
-                <span>TOTAL GRAV. 5%</span>
-                <span><?php echo e(number_format($invoice->subtotal_iva_5 + $invoice->total_iva_5, 0, ',', '.')); ?></span>
-            </div>
-            <?php endif; ?>
-            
-            <?php if($invoice->subtotal_iva_10 > 0 || $invoice->total_iva_10 > 0): ?>
-            <div class="totals-row">
-                <span>TOTAL GRAV. 10%</span>
-                <span><?php echo e(number_format($invoice->subtotal_iva_10 + $invoice->total_iva_10, 0, ',', '.')); ?></span>
-            </div>
-            <?php endif; ?>
-            
-            <?php if($invoice->total_iva_5 > 0): ?>
-            <div class="totals-row">
-                <span>LIQ. I.V.A. 5%</span>
-                <span><?php echo e(number_format($invoice->total_iva_5, 0, ',', '.')); ?></span>
-            </div>
-            <?php endif; ?>
-            
-            <?php if($invoice->total_iva_10 > 0): ?>
-            <div class="totals-row">
-                <span>LIQ. I.V.A. 10%</span>
-                <span><?php echo e(number_format($invoice->total_iva_10, 0, ',', '.')); ?></span>
-            </div>
-            <?php endif; ?>
-            
-            <?php if($invoice->total_iva > 0): ?>
-            <div class="totals-row">
-                <span><strong>TOTAL LIQ. I.V.A.</strong></span>
-                <span><strong><?php echo e(number_format($invoice->total_iva, 0, ',', '.')); ?></strong></span>
-            </div>
-            <?php endif; ?>
-            
-            <div style="border-top: 2px dashed #000; margin: 8px 0;"></div>
-            
-            <?php if($sale->payment_method === 'CASH' && $sale->amount_paid > 0): ?>
-            <div class="totals-row">
-                <span>RECIBIDO</span>
-                <span><?php echo e(number_format($sale->amount_paid, 0, ',', '.')); ?></span>
-            </div>
-            <div class="totals-row">
-                <span>VUELTO</span>
-                <span><?php echo e(number_format($sale->change_amount, 0, ',', '.')); ?></span>
-            </div>
-            <div style="border-top: 2px dashed #000; margin: 8px 0;"></div>
-            <?php endif; ?>
-            
-            <div class="totals-row total-final">
-                <span>TOTAL</span>
-                <span><?php echo e(number_format($invoice->total_amount, 0, ',', '.')); ?></span>
-            </div>
-        </div>
-
-        <!-- Payment Method -->
-        <?php if($sale->payment_method): ?>
-        <div style="margin-top: 10px; font-size: 10px; text-align: center;">
-            <strong>Forma de Pago:</strong> 
-            <?php echo e($sale->payment_method === 'CASH' ? 'Efectivo' : ($sale->payment_method === 'CARD' ? 'Tarjeta' : 'Transferencia')); ?>
-
-        </div>
-        <?php endif; ?>
-
-        <!-- Observations -->
-        <?php if($invoice->observations): ?>
-        <div style="margin-top: 10px; font-size: 9px;">
-            <strong>Observaciones:</strong> <?php echo e($invoice->observations); ?>
-
-        </div>
-        <?php endif; ?>
-
-        <!-- Footer -->
-        <div class="footer">
-            <div>Original: Cliente | Duplicado: Emisor</div>
-            <?php if($settings->footer_text): ?>
-                <div style="margin-top: 5px;"><?php echo e($settings->footer_text); ?></div>
-            <?php endif; ?>
-            <div style="margin-top: 5px;">Impreso: <?php echo e(now()->format('d/m/Y H:i:s')); ?></div>
-            <?php if($sale->user): ?>
-                <div>Cajero: <?php echo e($sale->user->name); ?></div>
-            <?php endif; ?>
+    
+    <div class="copy-half">
+        <div class="invoice-block">
+            <?php echo $__env->make('pdf.partials.invoice-content', [
+                'copyLabel' => 'Original: Comprador'
+            ], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
         </div>
     </div>
+
+    
+    <div class="cut-separator">
+        ✂ &nbsp;&nbsp; SEPARAR POR LA LÍNEA PUNTEADA &nbsp;&nbsp; ✂
+    </div>
+
+    
+    <div class="copy-half">
+        <div class="invoice-block">
+            <?php echo $__env->make('pdf.partials.invoice-content', [
+                'copyLabel' => 'Primera Copia: Arch. Tributario'
+            ], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+        </div>
+    </div>
+
+</div>
+<?php else: ?>
+
+<div style="padding:5mm;">
+    <div class="invoice-block" style="border:2px solid #000; padding:5px 7px;">
+        <?php echo $__env->make('pdf.partials.invoice-content', [
+            'copyLabel' => 'Original: Comprador | Primera Copia: Arch. Tributario'
+        ], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+    </div>
+</div>
+<?php endif; ?>
+
 </body>
-</html><?php /**PATH C:\laragon\www\bodega-app\resources\views/pdf/invoice.blade.php ENDPATH**/ ?>
+</html>
+<?php /**PATH C:\laragon\www\bodega-app\resources\views/pdf/invoice.blade.php ENDPATH**/ ?>

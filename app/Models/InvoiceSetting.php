@@ -11,6 +11,7 @@ class InvoiceSetting extends Model
 
     protected $fillable = [
         'company_name',
+        'company_activity',
         'company_ruc',
         'company_address',
         'company_phone',

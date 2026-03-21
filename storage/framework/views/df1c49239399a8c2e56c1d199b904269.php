@@ -1,618 +1,447 @@
+<?php if (isset($component)) { $__componentOriginal4619374cef299e94fd7263111d0abc69 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal4619374cef299e94fd7263111d0abc69 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.app-layout','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component->withName('app-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
+<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+     <?php $__env->slot('header', null, []); ?> 
+        <h2 class="h4 font-weight-bold mb-0">
+            <i class="bi bi-gear me-2"></i>Configuración de Facturas y Tickets
+        </h2>
+     <?php $__env->endSlot(); ?>
 
-
-<?php $__env->startSection('title', 'Configuración de Facturación'); ?>
-
-<?php $__env->startSection('content'); ?>
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0 text-gray-800">
-                    <i class="bi bi-gear-fill me-2"></i>
-                    Configuración de Facturación
-                </h1>
-            </div>
+    <div class="py-4" x-data="{
+        activeTab: 'factura',
+        s: {
+            company_name:     <?php echo \Illuminate\Support\Js::from($settings->company_name ?? '')->toHtml() ?>,
+            company_activity: <?php echo \Illuminate\Support\Js::from($settings->company_activity ?? '')->toHtml() ?>,
+            company_ruc:      <?php echo \Illuminate\Support\Js::from($settings->company_ruc ?? '')->toHtml() ?>,
+            company_phone:    <?php echo \Illuminate\Support\Js::from($settings->company_phone ?? '')->toHtml() ?>,
+            company_address:  <?php echo \Illuminate\Support\Js::from($settings->company_address ?? '')->toHtml() ?>,
+            company_email:    <?php echo \Illuminate\Support\Js::from($settings->company_email ?? '')->toHtml() ?>,
+            ticket_prefix:    <?php echo \Illuminate\Support\Js::from($settings->ticket_prefix ?? 'T')->toHtml() ?>,
+            ticket_counter:   <?php echo e($settings->ticket_counter ?? 1); ?>,
+            ticket_suffix:    <?php echo \Illuminate\Support\Js::from($settings->ticket_suffix ?? '')->toHtml() ?>,
+            footer_text:      <?php echo \Illuminate\Support\Js::from($settings->footer_text ?? '')->toHtml() ?>,
+        },
+        ticketNumberPreview() {
+            const num = String(this.s.ticket_counter).padStart(8, '0');
+            return (this.s.ticket_prefix || '') + num + (this.s.ticket_suffix || '');
+        }
+    }">
+        <div class="container-fluid">
 
             <?php if(session('success')): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle me-2"></i>
-                    <?php echo e(session('success')); ?>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="bi bi-check-circle me-2"></i><?php echo e(session('success')); ?>
 
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
 
-            <?php if($errors->any()): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>¡Error!</strong> Por favor corrige los siguientes errores:
-                    <ul class="mt-2 mb-0">
-                        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <li><?php echo e($error); ?></li>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
+            <div class="row g-4">
 
-            <form action="<?php echo e(route('settings.invoice.update')); ?>" method="POST" enctype="multipart/form-data">
-                <?php echo csrf_field(); ?>
-                <?php echo method_field('PUT'); ?>
+                
+                <div class="col-lg-5">
+                    <form method="POST" action="<?php echo e(route('settings.invoice.update')); ?>" enctype="multipart/form-data">
+                        <?php echo csrf_field(); ?> <?php echo method_field('PUT'); ?>
 
-                <div class="row">
-                    <!-- Información de la Empresa -->
-                    <div class="col-md-6">
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-building me-2"></i>
-                                    Información de la Empresa
-                                </h5>
+                        
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header fw-bold">
+                                <i class="bi bi-building me-2"></i>Datos de la Empresa
                             </div>
                             <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="company_name" class="form-label">Nombre de la Empresa *</label>
-                                    <input type="text" class="form-control" id="company_name" name="company_name" 
-                                           value="<?php echo e(old('company_name', $settings->company_name)); ?>" required>
+                                <div class="mb-2">
+                                    <label class="form-label form-label-sm">Nombre / Razón Social *</label>
+                                    <input type="text" name="company_name" class="form-control form-control-sm"
+                                        value="<?php echo e(old('company_name', $settings->company_name)); ?>"
+                                        x-model="s.company_name" required>
                                 </div>
-
-                                <div class="mb-3">
-                                    <label for="company_ruc" class="form-label">RUC</label>
-                                    <input type="text" class="form-control" id="company_ruc" name="company_ruc" 
-                                           value="<?php echo e(old('company_ruc', $settings->company_ruc)); ?>">
+                                <div class="mb-2">
+                                    <label class="form-label form-label-sm">Actividad Económica</label>
+                                    <input type="text" name="company_activity" class="form-control form-control-sm"
+                                        value="<?php echo e(old('company_activity', $settings->company_activity ?? '')); ?>"
+                                        x-model="s.company_activity">
                                 </div>
-
-                                <div class="mb-3">
-                                    <label for="company_address" class="form-label">Dirección</label>
-                                    <textarea class="form-control" id="company_address" name="company_address" rows="3"><?php echo e(old('company_address', $settings->company_address)); ?></textarea>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="company_phone" class="form-label">Teléfono</label>
-                                    <input type="text" class="form-control" id="company_phone" name="company_phone" 
-                                           value="<?php echo e(old('company_phone', $settings->company_phone)); ?>">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="company_email" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="company_email" name="company_email" 
-                                           value="<?php echo e(old('company_email', $settings->company_email)); ?>">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="company_logo" class="form-label">Logo de la Empresa</label>
-                                    <input type="file" class="form-control" id="company_logo" name="company_logo" accept="image/*">
-                                    <?php if($settings->company_logo): ?>
-                                        <div class="mt-2">
-                                            <img src="<?php echo e(asset('storage/' . $settings->company_logo)); ?>" alt="Logo actual" style="max-height: 80px;">
-                                            <p class="text-muted small mt-1">Logo actual</p>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Configuración de Documentos -->
-                    <div class="col-md-6">
-                        <div class="card mb-4">
-                            <div class="card-header bg-success text-white">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-file-earmark-text me-2"></i>
-                                    Configuración de Facturas
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="invoice_prefix" class="form-label">Prefijo *</label>
-                                            <input type="text" class="form-control" id="invoice_prefix" name="invoice_prefix" 
-                                                   value="<?php echo e(old('invoice_prefix', $settings->invoice_prefix)); ?>" required maxlength="10">
-                                        </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label form-label-sm">RUC</label>
+                                        <input type="text" name="company_ruc" class="form-control form-control-sm"
+                                            value="<?php echo e(old('company_ruc', $settings->company_ruc)); ?>"
+                                            x-model="s.company_ruc">
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="invoice_suffix" class="form-label">Sufijo</label>
-                                            <input type="text" class="form-control" id="invoice_suffix" name="invoice_suffix" 
-                                                   value="<?php echo e(old('invoice_suffix', $settings->invoice_suffix)); ?>" maxlength="10">
-                                        </div>
+                                    <div class="col-6">
+                                        <label class="form-label form-label-sm">Teléfono</label>
+                                        <input type="text" name="company_phone" class="form-control form-control-sm"
+                                            value="<?php echo e(old('company_phone', $settings->company_phone)); ?>"
+                                            x-model="s.company_phone">
                                     </div>
                                 </div>
-
-                                <div class="mb-3">
-                                    <label for="invoice_counter" class="form-label">Próximo Número *</label>
-                                    <input type="number" class="form-control" id="invoice_counter" name="invoice_counter" 
-                                           value="<?php echo e(old('invoice_counter', $settings->invoice_counter)); ?>" required min="1">
+                                <div class="mb-2">
+                                    <label class="form-label form-label-sm">Dirección</label>
+                                    <input type="text" name="company_address" class="form-control form-control-sm"
+                                        value="<?php echo e(old('company_address', $settings->company_address)); ?>"
+                                        x-model="s.company_address">
                                 </div>
-
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="invoice_auto_increment" name="invoice_auto_increment" 
-                                               <?php echo e($settings->invoice_auto_increment ? 'checked' : ''); ?>>
-                                        <label class="form-check-label" for="invoice_auto_increment">
-                                            Auto-incrementar número de factura
-                                        </label>
-                                    </div>
+                                <div class="mb-0">
+                                    <label class="form-label form-label-sm">Email</label>
+                                    <input type="email" name="company_email" class="form-control form-control-sm"
+                                        value="<?php echo e(old('company_email', $settings->company_email)); ?>"
+                                        x-model="s.company_email">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="card mb-4">
-                            <div class="card-header bg-info text-white">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-receipt me-2"></i>
-                                    Configuración de Tickets
-                                </h5>
+                        
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header fw-bold">
+                                <i class="bi bi-receipt me-2"></i>Numeración de Tickets
                             </div>
                             <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="ticket_prefix" class="form-label">Prefijo *</label>
-                                            <input type="text" class="form-control" id="ticket_prefix" name="ticket_prefix" 
-                                                   value="<?php echo e(old('ticket_prefix', $settings->ticket_prefix)); ?>" required maxlength="10">
-                                        </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-4">
+                                        <label class="form-label form-label-sm">Prefijo</label>
+                                        <input type="text" name="ticket_prefix" class="form-control form-control-sm"
+                                            value="<?php echo e(old('ticket_prefix', $settings->ticket_prefix ?? 'T')); ?>"
+                                            x-model="s.ticket_prefix" maxlength="5">
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="ticket_suffix" class="form-label">Sufijo</label>
-                                            <input type="text" class="form-control" id="ticket_suffix" name="ticket_suffix" 
-                                                   value="<?php echo e(old('ticket_suffix', $settings->ticket_suffix)); ?>" maxlength="10">
-                                        </div>
+                                    <div class="col-4">
+                                        <label class="form-label form-label-sm">Contador actual</label>
+                                        <input type="number" name="ticket_counter" class="form-control form-control-sm"
+                                            value="<?php echo e(old('ticket_counter', $settings->ticket_counter ?? 1)); ?>"
+                                            x-model="s.ticket_counter" min="1">
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label form-label-sm">Sufijo</label>
+                                        <input type="text" name="ticket_suffix" class="form-control form-control-sm"
+                                            value="<?php echo e(old('ticket_suffix', $settings->ticket_suffix ?? '')); ?>"
+                                            x-model="s.ticket_suffix" maxlength="5">
                                     </div>
                                 </div>
-
-                                <div class="mb-3">
-                                    <label for="ticket_counter" class="form-label">Próximo Número *</label>
-                                    <input type="number" class="form-control" id="ticket_counter" name="ticket_counter" 
-                                           value="<?php echo e(old('ticket_counter', $settings->ticket_counter)); ?>" required min="1">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" name="ticket_auto_increment"
+                                        id="ticket_auto_increment"
+                                        <?php echo e(old('ticket_auto_increment', $settings->ticket_auto_increment) ? 'checked' : ''); ?>>
+                                    <label class="form-check-label form-label-sm" for="ticket_auto_increment">
+                                        Auto-incrementar al emitir
+                                    </label>
                                 </div>
+                                <div class="alert alert-light border py-1 px-2 mt-2 mb-0" style="font-size:12px;">
+                                    Vista previa: <strong x-text="ticketNumberPreview()"></strong>
+                                </div>
+                            </div>
+                        </div>
 
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="ticket_auto_increment" name="ticket_auto_increment" 
-                                               <?php echo e($settings->ticket_auto_increment ? 'checked' : ''); ?>>
-                                        <label class="form-check-label" for="ticket_auto_increment">
-                                            Auto-incrementar número de ticket
-                                        </label>
+                        
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header fw-bold">
+                                <i class="bi bi-text-left me-2"></i>Pie de Página
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-0">
+                                    <label class="form-label form-label-sm">Texto del pie (factura y ticket)</label>
+                                    <textarea name="footer_text" class="form-control form-control-sm" rows="2"
+                                        x-model="s.footer_text"><?php echo e(old('footer_text', $settings->footer_text)); ?></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header fw-bold">
+                                <i class="bi bi-printer me-2"></i>Configuración de Impresión
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label form-label-sm">Tamaño papel (factura)</label>
+                                        <select name="paper_size" class="form-select form-select-sm">
+                                            <option value="A4"     <?php echo e(($settings->paper_size ?? 'A4') === 'A4'     ? 'selected' : ''); ?>>A4</option>
+                                            <option value="Letter" <?php echo e(($settings->paper_size ?? '') === 'Letter' ? 'selected' : ''); ?>>Carta (Letter)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label form-label-sm">Orientación</label>
+                                        <select name="orientation" class="form-select form-select-sm">
+                                            <option value="portrait"  <?php echo e(($settings->orientation ?? 'portrait') === 'portrait'  ? 'selected' : ''); ?>>Vertical</option>
+                                            <option value="landscape" <?php echo e(($settings->orientation ?? '') === 'landscape' ? 'selected' : ''); ?>>Horizontal</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label form-label-sm">IVA por defecto (%)</label>
+                                        <input type="number" name="default_iva_rate" class="form-control form-control-sm"
+                                            value="<?php echo e(old('default_iva_rate', $settings->default_iva_rate ?? 10)); ?>"
+                                            min="0" max="100" step="0.01">
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mb-4">
+                            <i class="bi bi-check-circle me-1"></i>Guardar Configuración
+                        </button>
+                    </form>
                 </div>
 
-                <div class="row">
-                    <!-- Configuración de Impresión -->
-                    <div class="col-md-6">
-                        <div class="card mb-4">
-                            <div class="card-header bg-warning text-dark">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-printer me-2"></i>
-                                    Configuración de Impresión
-                                </h5>
+                
+                <div class="col-lg-7">
+                    <div class="sticky-top" style="top: 80px;">
+
+                        <ul class="nav nav-tabs mb-0">
+                            <li class="nav-item">
+                                <button class="nav-link" :class="activeTab==='factura' ? 'active' : ''"
+                                    @click="activeTab='factura'" type="button">
+                                    <i class="bi bi-file-text me-1"></i>Factura
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" :class="activeTab==='ticket' ? 'active' : ''"
+                                    @click="activeTab='ticket'" type="button">
+                                    <i class="bi bi-receipt me-1"></i>Ticket
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="border border-top-0 rounded-bottom bg-light p-3"
+                             style="max-height:80vh; overflow-y:auto;">
+
+                            
+                            <div x-show="activeTab==='factura'">
+                                <div style="background:#fff;border:2px solid #000;padding:8px;font-family:Arial,sans-serif;font-size:9px;color:#000;max-width:660px;margin:0 auto;">
+
+                                    
+                                    <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #000;margin-bottom:6px;">
+                                        <tr>
+                                            <td style="width:60%;border-right:2px solid #000;padding:4px 6px;vertical-align:top;">
+                                                <div style="font-size:13px;font-weight:bold;text-decoration:underline;margin-bottom:3px;" x-text="s.company_name || 'Nombre de la Empresa'"></div>
+                                                <div style="font-size:8px;" x-text="s.company_activity"></div>
+                                                <div style="font-size:8px;" x-text="s.company_phone ? 'Cel.: '+s.company_phone : ''"></div>
+                                                <div style="font-size:8px;" x-text="s.company_address"></div>
+                                            </td>
+                                            <td style="width:40%;padding:4px 6px;vertical-align:top;text-align:center;">
+                                                <?php if($fiscalStamp): ?>
+                                                    <div style="font-size:8px;font-weight:bold;">TIMBRADO Nº</div>
+                                                    <div style="font-size:9px;font-weight:bold;"><?php echo e($fiscalStamp->stamp_number); ?></div>
+                                                    <div style="font-size:8px;" x-text="'RUC: '+(s.company_ruc||'0000000')"></div>
+                                                    <div style="font-size:18px;font-weight:bold;letter-spacing:2px;">FACTURA</div>
+                                                    <div style="font-size:7.5px;">Fecha Inicio Vigencia: <?php echo e($fiscalStamp->valid_from->format('d/m/Y')); ?></div>
+                                                    <div style="font-size:7.5px;">Válido Hasta: <?php echo e($fiscalStamp->valid_until->format('d/m/Y')); ?></div>
+                                                    <div style="border:2px solid #000;display:inline-block;padding:2px 8px;font-size:10px;font-weight:bold;margin-top:4px;">
+                                                        <?php echo e($fiscalStamp->establishment); ?>-<?php echo e($fiscalStamp->point_of_sale); ?>-0000001
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div style="font-size:8px;color:#999;">Sin timbrado activo</div>
+                                                    <div style="font-size:8px;" x-text="'RUC: '+(s.company_ruc||'0000000')"></div>
+                                                    <div style="font-size:18px;font-weight:bold;letter-spacing:2px;">FACTURA</div>
+                                                    <div style="border:2px solid #000;display:inline-block;padding:2px 8px;font-size:10px;font-weight:bold;margin-top:4px;">001-001-0000001</div>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    
+                                    <table style="width:100%;border-collapse:collapse;border:1px solid #000;margin-bottom:6px;">
+                                        <tr>
+                                            <td style="width:55%;border:1px solid #000;padding:3px 5px;font-size:8px;">
+                                                Fecha de Emisión: <strong><?php echo e(now()->day); ?></strong> de <strong><?php echo e(now()->translatedFormat('F')); ?></strong> de <strong><?php echo e(now()->year); ?></strong>
+                                            </td>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">
+                                                Cond. de Venta:
+                                                <span style="display:inline-block;width:9px;height:9px;border:1px solid #000;text-align:center;line-height:8px;font-size:7px;font-weight:bold;">X</span> Contado &nbsp;
+                                                <span style="display:inline-block;width:9px;height:9px;border:1px solid #000;"></span> Crédito
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">Nombre o Razón Social: <strong>Juan Pérez</strong></td>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">Nota de Remisión Nº:</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">R.U.C.: <strong>1234567-8</strong></td>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8px;">Teléfono: <strong>0981 000 000</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2" style="border:1px solid #000;padding:3px 5px;font-size:8px;">Dirección: <strong>Av. España 123, Asunción</strong></td>
+                                        </tr>
+                                    </table>
+
+                                    
+                                    <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:8px;">
+                                        <thead>
+                                            <tr>
+                                                <th rowspan="2" style="border:1px solid #000;padding:2px 3px;text-align:center;width:7%;">Cant.</th>
+                                                <th rowspan="2" style="border:1px solid #000;padding:2px 3px;width:44%;">Descripción</th>
+                                                <th rowspan="2" style="border:1px solid #000;padding:2px 3px;text-align:right;width:14%;">P/U</th>
+                                                <th colspan="3" style="border:1px solid #000;padding:2px 3px;text-align:center;">VALOR DE VENTA</th>
+                                            </tr>
+                                            <tr>
+                                                <th style="border:1px solid #000;padding:2px 3px;text-align:center;width:12%;">EXENTAS</th>
+                                                <th style="border:1px solid #000;padding:2px 3px;text-align:center;width:11%;">5 %</th>
+                                                <th style="border:1px solid #000;padding:2px 3px;text-align:center;width:12%;">10 %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td style="border:1px solid #000;padding:2px 3px;text-align:center;">2</td>
+                                                <td style="border:1px solid #000;padding:2px 3px;">Remera blanca talle M</td>
+                                                <td style="border:1px solid #000;padding:2px 3px;text-align:right;">25.000</td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;text-align:right;">50.000</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="border:1px solid #000;padding:2px 3px;text-align:center;">1</td>
+                                                <td style="border:1px solid #000;padding:2px 3px;">Pantalón negro talle L</td>
+                                                <td style="border:1px solid #000;padding:2px 3px;text-align:right;">80.000</td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;text-align:right;">80.000</td>
+                                            </tr>
+                                            <?php for($i=0;$i<8;$i++): ?>
+                                            <tr>
+                                                <td style="border:1px solid #000;padding:2px 3px;height:11px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                                <td style="border:1px solid #000;padding:2px 3px;"></td>
+                                            </tr>
+                                            <?php endfor; ?>
+                                        </tbody>
+                                    </table>
+
+                                    
+                                    <table style="width:100%;border-collapse:collapse;">
+                                        <tr>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-weight:bold;width:55%;font-size:8.5px;">VALOR PARCIAL</td>
+                                            <td style="border:1px solid #000;padding:3px 5px;text-align:right;font-size:8.5px;">130.000</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-weight:bold;font-size:10px;">TOTAL A PAGAR Gs.</td>
+                                            <td style="border:1px solid #000;padding:3px 5px;text-align:right;font-weight:bold;font-size:10px;">130.000</td>
+                                        </tr>
+                                    </table>
+                                    <table style="width:100%;border-collapse:collapse;">
+                                        <tr>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-size:8.5px;width:55%;">
+                                                TOTAL IVA: &nbsp;<strong>11.818</strong>
+                                            </td>
+                                            <td style="border:1px solid #000;padding:3px 5px;font-size:7.5px;text-align:right;font-weight:bold;">
+                                                Original: Comprador &nbsp;|&nbsp; Primera Copia: Arch. Tributario
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2" style="border:1px solid #000;padding:3px 5px;font-size:8.5px;">
+                                                Liquidación del IVA:&nbsp; (5 %) <strong>0</strong> &nbsp;&nbsp;&nbsp; (10 %) <strong>11.818</strong>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <div x-show="s.footer_text" style="font-size:7.5px;color:#555;margin-top:4px;text-align:center;" x-text="s.footer_text"></div>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="paper_size" class="form-label">Tamaño de Papel *</label>
-                                    <select class="form-select" id="paper_size" name="paper_size" required>
-                                        <option value="A4" <?php echo e($settings->paper_size === 'A4' ? 'selected' : ''); ?>>A4</option>
-                                        <option value="Letter" <?php echo e($settings->paper_size === 'Letter' ? 'selected' : ''); ?>>Carta</option>
-                                        <option value="Ticket" <?php echo e($settings->paper_size === 'Ticket' ? 'selected' : ''); ?>>Ticket (80mm)</option>
-                                    </select>
-                                </div>
 
-                                <div class="mb-3">
-                                    <label for="orientation" class="form-label">Orientación *</label>
-                                    <select class="form-select" id="orientation" name="orientation" required>
-                                        <option value="portrait" <?php echo e($settings->orientation === 'portrait' ? 'selected' : ''); ?>>Vertical</option>
-                                        <option value="landscape" <?php echo e($settings->orientation === 'landscape' ? 'selected' : ''); ?>>Horizontal</option>
-                                    </select>
-                                </div>
+                            
+                            <div x-show="activeTab==='ticket'" style="display:none;">
+                                <div style="background:#fff;border:1px solid #ccc;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#000;max-width:280px;margin:0 auto;">
 
-                                <div class="mb-3">
-                                    <label for="default_iva_rate" class="form-label">Tasa IVA por Defecto (%) *</label>
-                                    <input type="number" class="form-control" id="default_iva_rate" name="default_iva_rate" 
-                                           value="<?php echo e(old('default_iva_rate', $settings->default_iva_rate)); ?>" required min="0" max="100" step="0.01">
-                                </div>
-
-                                <!-- Configuración de Impresoras -->
-                                <hr class="my-4">
-                                <h6 class="text-primary">
-                                    <i class="bi bi-printer-fill me-2"></i>
-                                    Configuración de Impresoras
-                                </h6>
-
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <label class="form-label">Impresoras Disponibles</label>
-                                        <button type="button" class="btn btn-sm btn-info" id="refreshPrinters">
-                                            <i class="bi bi-arrow-clockwise"></i>
-                                            Actualizar Lista
-                                        </button>
+                                    <div style="text-align:center;border-bottom:2px dashed #333;padding-bottom:10px;margin-bottom:10px;">
+                                        <div style="font-size:13px;font-weight:bold;text-transform:uppercase;" x-text="s.company_name || 'NOMBRE EMPRESA'"></div>
+                                        <div style="font-size:9px;" x-show="s.company_ruc" x-text="'RUC: '+s.company_ruc"></div>
+                                        <div style="font-size:9px;" x-show="s.company_address" x-text="s.company_address"></div>
+                                        <div style="font-size:9px;" x-show="s.company_phone" x-text="'Tel: '+s.company_phone"></div>
                                     </div>
-                                    <div id="printersLoading" class="text-center py-2 d-none">
-                                        <div class="spinner-border spinner-border-sm" role="status">
-                                            <span class="visually-hidden">Cargando...</span>
-                                        </div>
-                                        Detectando impresoras...
-                                    </div>
-                                    <div id="printersList" class="list-group mt-2">
-                                        <!-- Las impresoras se cargarán aquí -->
-                                    </div>
-                                </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="default_printer" class="form-label">Impresora por Defecto</label>
-                                            <select class="form-select" id="default_printer" name="default_printer">
-                                                <option value="">Seleccionar impresora...</option>
-                                            </select>
+                                    <div style="text-align:center;background:#f9f9f9;padding:8px;margin-bottom:10px;border-bottom:1px dashed #333;">
+                                        <div style="font-size:12px;font-weight:bold;">TICKET DE VENTA</div>
+                                        <div style="font-size:9px;margin-top:4px;">
+                                            <div>Nro: <strong x-text="ticketNumberPreview()"></strong></div>
+                                            <div>Fecha: <strong><?php echo e(now()->format('d/m/Y H:i')); ?></strong></div>
+                                            <div>Vendedor: <strong>Usuario</strong></div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="ticket_printer" class="form-label">Impresora para Tickets</label>
-                                            <select class="form-select" id="ticket_printer" name="ticket_printer">
-                                                <option value="">Usar impresora por defecto</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="invoice_printer" class="form-label">Impresora para Facturas</label>
-                                            <select class="form-select" id="invoice_printer" name="invoice_printer">
-                                                <option value="">Usar impresora por defecto</option>
-                                            </select>
+                                    <div style="margin-bottom:10px;border-bottom:1px dashed #333;padding-bottom:8px;">
+                                        <div style="margin-bottom:6px;border-bottom:1px dotted #ccc;padding-bottom:4px;">
+                                            <div style="font-weight:bold;font-size:10px;">Remera blanca talle M</div>
+                                            <div style="display:table;width:100%;font-size:9px;">
+                                                <span style="display:table-cell;">2 x Gs. 25.000</span>
+                                                <span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 50.000</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="d-flex gap-2">
-                                                <button type="button" class="btn btn-outline-success btn-sm" id="testPrinter" disabled>
-                                                    <i class="bi bi-printer"></i>
-                                                    Probar Impresora
-                                                </button>
-                                                <button type="button" class="btn btn-outline-info btn-sm" id="diagnosePrinter" disabled>
-                                                    <i class="bi bi-info-circle"></i>
-                                                    Diagnóstico
-                                                </button>
+                                        <div>
+                                            <div style="font-weight:bold;font-size:10px;">Pantalón negro talle L</div>
+                                            <div style="display:table;width:100%;font-size:9px;">
+                                                <span style="display:table-cell;">1 x Gs. 80.000</span>
+                                                <span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 80.000</span>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="auto_print_tickets" name="auto_print_tickets" 
-                                                   <?php echo e($settings->auto_print_tickets ? 'checked' : ''); ?>>
-                                            <label class="form-check-label" for="auto_print_tickets">
-                                                Auto-imprimir tickets
-                                            </label>
+                                    <div style="background:#f5f5f5;padding:8px;margin-bottom:10px;">
+                                        <div style="display:table;width:100%;margin-bottom:2px;font-size:10px;">
+                                            <span style="display:table-cell;">Subtotal:</span>
+                                            <span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 130.000</span>
+                                        </div>
+                                        <div style="display:table;width:100%;margin-bottom:2px;font-size:10px;">
+                                            <span style="display:table-cell;">IVA (10%):</span>
+                                            <span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 11.818</span>
+                                        </div>
+                                        <div style="display:table;width:100%;border-top:2px solid #333;padding-top:4px;font-size:12px;font-weight:bold;">
+                                            <span style="display:table-cell;">TOTAL:</span>
+                                            <span style="display:table-cell;text-align:right;">Gs. 130.000</span>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="auto_print_invoices" name="auto_print_invoices" 
-                                                   <?php echo e($settings->auto_print_invoices ? 'checked' : ''); ?>>
-                                            <label class="form-check-label" for="auto_print_invoices">
-                                                Auto-imprimir facturas
-                                            </label>
+
+                                    <div style="border:1px dashed #333;padding:8px;margin-bottom:10px;font-size:10px;">
+                                        <div style="text-align:center;font-weight:bold;text-decoration:underline;margin-bottom:6px;">INFORMACIÓN DE PAGO</div>
+                                        <div style="display:table;width:100%;margin-bottom:2px;">
+                                            <span style="display:table-cell;">Método:</span>
+                                            <span style="display:table-cell;text-align:right;font-weight:bold;">Efectivo</span>
                                         </div>
+                                        <div style="display:table;width:100%;margin-bottom:2px;">
+                                            <span style="display:table-cell;">Recibido:</span>
+                                            <span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 150.000</span>
+                                        </div>
+                                        <div style="display:table;width:100%;">
+                                            <span style="display:table-cell;">Cambio:</span>
+                                            <span style="display:table-cell;text-align:right;font-weight:bold;">Gs. 20.000</span>
+                                        </div>
+                                    </div>
+
+                                    <div style="text-align:center;font-size:8px;border-top:1px dashed #333;padding-top:8px;">
+                                        <div style="font-weight:bold;margin-bottom:4px;">¡Gracias por su compra!</div>
+                                        <div x-show="s.footer_text" x-text="s.footer_text" style="font-style:italic;margin-bottom:4px;"></div>
+                                        <div style="color:#666;"><?php echo e(now()->format('d/m/Y H:i:s')); ?></div>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
-                    </div>
 
-                    <!-- Textos Personalizados -->
-                    <div class="col-md-6">
-                        <div class="card mb-4">
-                            <div class="card-header bg-secondary text-white">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-textarea-t me-2"></i>
-                                    Textos Personalizados
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="footer_text" class="form-label">Texto del Pie de Página</label>
-                                    <textarea class="form-control" id="footer_text" name="footer_text" rows="3" 
-                                              placeholder="Texto que aparecerá al final de los documentos"><?php echo e(old('footer_text', $settings->footer_text)); ?></textarea>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="terms_conditions" class="form-label">Términos y Condiciones</label>
-                                    <textarea class="form-control" id="terms_conditions" name="terms_conditions" rows="4" 
-                                              placeholder="Términos y condiciones de la venta"><?php echo e(old('terms_conditions', $settings->terms_conditions)); ?></textarea>
-                                </div>
-                            </div>
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-eye me-1"></i>Vista previa en tiempo real — datos de ejemplo ilustrativos
+                            </small>
                         </div>
                     </div>
                 </div>
 
-                <!-- Botones de Acción -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="<?php echo e(route('pos.index')); ?>" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left me-2"></i>
-                                Volver
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-lg me-2"></i>
-                                Guardar Configuración
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-// Definir función global para probar impresora
-window.testPrinter = async function(printerName) {
-    try {
-        const response = await fetch('<?php echo e(route("printers.test")); ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
-            },
-            body: JSON.stringify({ printer_name: printerName })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showSuccess('✅ ' + data.message);
-        } else {
-            showError('❌ ' + data.message);
-        }
-    } catch (error) {
-        showError('❌ Error al probar impresora: ' + error.message);
-    }
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-    const currentSettings = {
-        default_printer: '<?php echo e($settings->default_printer); ?>',
-        ticket_printer: '<?php echo e($settings->ticket_printer); ?>',
-        invoice_printer: '<?php echo e($settings->invoice_printer); ?>'
-    };
-    
-    // Cargar impresoras al cargar la página
-    loadPrinters();
-    
-    // Evento para actualizar lista de impresoras
-    document.getElementById('refreshPrinters').addEventListener('click', function() {
-        loadPrinters();
-    });
-    
-    // Evento para probar impresora seleccionada
-    document.getElementById('testPrinter').addEventListener('click', function() {
-        const printerName = document.getElementById('default_printer').value;
-        if (printerName) {
-            window.testPrinter(printerName);
-        }
-    });
-    
-    // Evento para diagnóstico de impresora
-    document.getElementById('diagnosePrinter').addEventListener('click', function() {
-        const printerName = document.getElementById('default_printer').value;
-        if (printerName) {
-            diagnosePrinter(printerName);
-        }
-    });
-    
-    // Habilitar botones cuando se selecciona una impresora
-    document.getElementById('default_printer').addEventListener('change', function() {
-        const hasSelection = !!this.value;
-        document.getElementById('testPrinter').disabled = !hasSelection;
-        document.getElementById('diagnosePrinter').disabled = !hasSelection;
-    });
-    
-    async function loadPrinters() {
-        const loadingEl = document.getElementById('printersLoading');
-        const listEl = document.getElementById('printersList');
-        const refreshBtn = document.getElementById('refreshPrinters');
-        
-        // Mostrar loading
-        loadingEl.classList.remove('d-none');
-        refreshBtn.disabled = true;
-        listEl.innerHTML = '';
-        
-        try {
-            const response = await fetch('<?php echo e(route("printers.list")); ?>');
-            const data = await response.json();
-            
-            if (data.success) {
-                displayPrinters(data.printers);
-                populateSelects(data.printers);
-            } else {
-                showError('Error al cargar impresoras: ' + data.message);
-            }
-        } catch (error) {
-            showError('Error de conexión: ' + error.message);
-        } finally {
-            loadingEl.classList.add('d-none');
-            refreshBtn.disabled = false;
-        }
-    }
-    
-    function displayPrinters(printers) {
-        const listEl = document.getElementById('printersList');
-        
-        if (printers.length === 0) {
-            listEl.innerHTML = '<div class="alert alert-warning">No se encontraron impresoras</div>';
-            return;
-        }
-        
-        const html = printers.map(printer => {
-            const typeIcon = getPrinterIcon(printer.type);
-            const typeLabel = getPrinterTypeLabel(printer.type);
-            
-            return `
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="d-flex align-items-center">
-                            <i class="bi ${typeIcon} me-2"></i>
-                            <strong>${escapeHtml(printer.name)}</strong>
-                            <span class="badge bg-secondary ms-2">${typeLabel}</span>
-                        </div>
-                        <small class="text-muted">Puerto: ${escapeHtml(printer.port)} | Driver: ${escapeHtml(printer.driver)}</small>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.testPrinter('${escapeHtml(printer.name)}')">
-                        <i class="bi bi-printer"></i>
-                        Probar
-                    </button>
-                </div>
-            `;
-        }).join('');
-        
-        listEl.innerHTML = html;
-    }
-    
-    function populateSelects(printers) {
-        const selects = ['default_printer', 'ticket_printer', 'invoice_printer'];
-        
-        selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            const currentValue = select.value || currentSettings[selectId];
-            
-            // Limpiar opciones existentes (excepto la primera)
-            while (select.children.length > 1) {
-                select.removeChild(select.lastChild);
-            }
-            
-            // Agregar impresoras
-            printers.forEach(printer => {
-                const option = document.createElement('option');
-                option.value = printer.name;
-                option.textContent = `${printer.name} (${getPrinterTypeLabel(printer.type)})`;
-                
-                if (printer.name === currentValue) {
-                    option.selected = true;
-                }
-                
-                select.appendChild(option);
-            });
-        });
-        
-        // Habilitar botón de prueba si hay impresora seleccionada
-        document.getElementById('testPrinter').disabled = !document.getElementById('default_printer').value;
-        document.getElementById('diagnosePrinter').disabled = !document.getElementById('default_printer').value;
-    }
-    
-    async function diagnosePrinter(printerName) {
-        try {
-            window.showSuccess('🔍 Analizando estado de la impresora...');
-            
-            const response = await fetch(`/api/printers/${encodeURIComponent(printerName)}/status`);
-            const data = await response.json();
-            
-            if (data.success) {
-                let message = `📊 Diagnóstico de: ${printerName}\n\n`;
-                
-                if (data.status.online !== undefined) {
-                    message += `Estado: ${data.status.online ? '🟢 En línea' : '🔴 Desconectada'}\n`;
-                }
-                
-                if (data.status.description) {
-                    message += `Descripción: ${data.status.description}\n`;
-                }
-                
-                if (data.status.error_state && data.status.error_state !== 'Unknown') {
-                    message += `Estado de error: ${data.status.error_state}\n`;
-                }
-                
-                // Recomendaciones
-                message += '\n📋 Recomendaciones:\n';
-                message += '• Verifique que la impresora esté encendida\n';
-                message += '• Compruebe la conexión USB/Red\n';
-                message += '• Revise que tenga papel\n';
-                message += '• Verifique los drivers instalados\n';
-                
-                alert(message);
-            } else {
-                window.showError('Error en diagnóstico: ' + data.message);
-            }
-        } catch (error) {
-            window.showError('Error al obtener diagnóstico: ' + error.message);
-        }
-    }
-    
-    function getPrinterIcon(type) {
-        switch (type) {
-            case 'thermal': return 'bi-receipt';
-            case 'pdf': return 'bi-file-pdf';
-            case 'fax': return 'bi-telephone';
-            default: return 'bi-printer';
-        }
-    }
-    
-    function getPrinterTypeLabel(type) {
-        switch (type) {
-            case 'thermal': return 'Térmica/POS';
-            case 'pdf': return 'PDF';
-            case 'fax': return 'Fax';
-            default: return 'General';
-        }
-    }
-    
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    // Hacer funciones de alerta disponibles globalmente
-    window.showSuccess = function(message) {
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
-        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-        alert.innerHTML = `
-            <i class="bi bi-check-circle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        document.body.appendChild(alert);
-        
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.remove();
-            }
-        }, 5000);
-    };
-    
-    window.showError = function(message) {
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
-        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-        alert.innerHTML = `
-            <i class="bi bi-exclamation-triangle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        document.body.appendChild(alert);
-        
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.remove();
-            }
-        }, 5000);
-    };
-});
-</script>
-<?php $__env->stopSection(); ?>
-<?php echo $__env->make('layouts.pos', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\laragon\www\bodega-app\resources\views/settings/invoice.blade.php ENDPATH**/ ?>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal4619374cef299e94fd7263111d0abc69)): ?>
+<?php $attributes = $__attributesOriginal4619374cef299e94fd7263111d0abc69; ?>
+<?php unset($__attributesOriginal4619374cef299e94fd7263111d0abc69); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal4619374cef299e94fd7263111d0abc69)): ?>
+<?php $component = $__componentOriginal4619374cef299e94fd7263111d0abc69; ?>
+<?php unset($__componentOriginal4619374cef299e94fd7263111d0abc69); ?>
+<?php endif; ?>
+<?php /**PATH C:\laragon\www\bodega-app\resources\views/settings/invoice.blade.php ENDPATH**/ ?>

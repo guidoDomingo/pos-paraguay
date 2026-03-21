@@ -303,17 +303,15 @@
                     ?>
                 </div>
                 
-                <input 
-                    type="number" 
+                <input
+                    type="number"
                     id="cash-input"
-                    value="<?php echo e($cash_received); ?>"
-                    style="width: 100%; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 18px; text-align: center; font-weight: bold;" 
-                    min="0" 
+                    wire:model.blur="cash_received"
+                    style="width: 100%; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 18px; text-align: center; font-weight: bold;"
+                    min="0"
                     step="1000"
                     placeholder="0"
-                    onfocus="this.select()"
-                    oninput="updateCashReceived(this.value)"
-                    onblur="window.Livewire.find('<?php echo e($_instance->getId()); ?>').set('cash_received', this.value || 0)">
+                    onfocus="this.select()">
                 
                 <!--[if BLOCK]><![endif]--><?php if($cash_received >= $total_amount && $cash_received > 0): ?>
                 <div style="margin-top: 15px; background: #d4edda; padding: 15px; border-radius: 8px; border: 1px solid #c3e6cb;">
@@ -342,7 +340,7 @@
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">Monto Abonado:</label>
                     <input 
                         type="number" 
-                        wire:model.blur="amount_paid"
+                        wire:model.live.debounce.400ms="amount_paid"
                         style="width: 100%; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 18px; text-align: center; font-weight: bold;" 
                         min="0" 
                         max="<?php echo e($total_amount); ?>"
@@ -373,11 +371,11 @@
                 <h5 style="margin-bottom: 15px; color: #333;">📄 Tipo de Comprobante:</h5>
                 <div style="display: flex; gap: 15px;">
                     <label style="flex: 1; background: <?php echo e($document_type === 'ticket' ? '#e7f7e7' : '#f8f9fa'); ?>; padding: 15px; border-radius: 8px; cursor: pointer; border: 2px solid <?php echo e($document_type === 'ticket' ? '#28a745' : '#dee2e6'); ?>;">
-                        <input type="radio" name="document_type" value="ticket" wire:model="document_type" style="margin-right: 8px;">
+                        <input type="radio" name="document_type" value="ticket" wire:model.live="document_type" style="margin-right: 8px;">
                         <strong>🧾 Ticket</strong>
                     </label>
                     <label style="flex: 1; background: <?php echo e($document_type === 'factura' ? '#e7f7e7' : '#f8f9fa'); ?>; padding: 15px; border-radius: 8px; cursor: pointer; border: 2px solid <?php echo e($document_type === 'factura' ? '#28a745' : '#dee2e6'); ?>;">
-                        <input type="radio" name="document_type" value="factura" wire:model="document_type" style="margin-right: 8px;">
+                        <input type="radio" name="document_type" value="factura" wire:model.live="document_type" style="margin-right: 8px;">
                         <strong>📋 Factura</strong>
                     </label>
                 </div>
@@ -388,7 +386,7 @@
             <div style="margin-bottom: 25px; background: #fff3cd; padding: 20px; border-radius: 10px; border: 1px solid #ffc107;">
                 <h6 style="margin-bottom: 15px; color: #856404;">👤 Datos del Cliente:</h6>
                 <div style="margin-bottom: 15px;">
-                    <input type="text" wire:model="customer_name" placeholder="Nombre/Razón Social (Requerido)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
+                    <input type="text" wire:model.blur="customer_name" placeholder="Nombre/Razón Social (Requerido)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
                 </div>
                 <div style="margin-bottom: 15px;">
                     <input type="text" wire:model="customer_ruc" placeholder="RUC/CI" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
@@ -1242,9 +1240,8 @@
             var input = document.getElementById('cash-input');
             if (input) {
                 input.value = amount;
-                input.focus();
-                input.dispatchEvent(new Event('blur', { bubbles: true }));
             }
+            window.Livewire.find('<?php echo e($_instance->getId()); ?>').set('cash_received', amount);
         }
 
         function updateCashReceived(value) {

@@ -10,10 +10,6 @@
 <?php $component->withAttributes([]); ?>
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Bootstrap 5 CSS -->
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-            
             <style>
                 .dashboard-card {
                     transition: all 0.3s ease;
@@ -65,12 +61,10 @@
                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
                 }
 
-                .data-table thead {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                }
-
-                .data-table th {
-                    color: white;
+                .data-table thead tr,
+                .data-table thead tr th {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                    color: white !important;
                     font-weight: 600;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
@@ -325,9 +319,13 @@
                                             </button>
                                             <?php endif; ?>
                                             <?php if($sale->invoice): ?>
-                                            <a href="<?php echo e(route('invoices.print', $sale->invoice)); ?>" 
-                                               class="btn btn-sm btn-outline-success" target="_blank" title="Imprimir">
+                                            <a href="<?php echo e(route('pdf.preview.invoice', $sale->id)); ?>"
+                                               class="btn btn-sm btn-outline-primary" target="_blank" title="Imprimir factura">
                                                 <i class="bi bi-printer"></i>
+                                            </a>
+                                            <a href="<?php echo e(route('pdf.invoice', $sale->id)); ?>"
+                                               class="btn btn-sm btn-outline-danger" target="_blank" title="Descargar PDF">
+                                                <i class="bi bi-file-earmark-pdf"></i>
                                             </a>
                                             <?php endif; ?>
                                         </div>

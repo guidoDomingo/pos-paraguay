@@ -3,20 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Models\InvoiceSetting;
+use App\Models\FiscalStamp;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class InvoiceSettingController extends Controller
 {
     public function index()
     {
         $settings = InvoiceSetting::getSettings();
-        return view('settings.invoice', compact('settings'));
+        $fiscalStamp = FiscalStamp::where('company_id', Auth::user()->company_id)
+            ->where('is_active', true)
+            ->where('valid_from', '<=', now())
+            ->where('valid_until', '>=', now())
+            ->first();
+        return view('settings.invoice', compact('settings', 'fiscalStamp'));
     }
 
     public function update(Request $request)
     {
         $request->validate([
             'company_name' => 'required|string|max:255',
+            'company_activity' => 'nullable|string|max:255',
             'company_ruc' => 'nullable|string|max:20',
             'company_address' => 'nullable|string',
             'company_phone' => 'nullable|string|max:20',

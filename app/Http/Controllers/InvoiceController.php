@@ -27,7 +27,7 @@ class InvoiceController extends Controller
     
     public function print(Invoice $invoice)
     {
-        return view('invoices.dnit-format', compact('invoice'));
+        return redirect()->route('pdf.invoice', $invoice->sale_id);
     }
 
     public function printTicket(Sale $sale)
