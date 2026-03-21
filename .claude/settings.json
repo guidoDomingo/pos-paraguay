@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"amount_paid\\\\|total_collected\\\\|balance_due\" c:/laragon/www/bodega-app/database/migrations/*.php)",
+      "Bash(grep -v \"//\")"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-4">
+        <div class="container-fluid px-4">
             <style>
                 .dashboard-card {
                     transition: all 0.3s ease;
@@ -115,47 +115,50 @@
 
             <!-- Estadísticas de Ventas a Crédito -->
             @if($creditStats && $creditStats->total_credit_sales > 0)
-            <div class="row mb-4">
+            <div class="row mb-4 g-3">
                 <div class="col-md-4">
-                    <div class="dashboard-card bg-primary text-white">
-                        <div class="card-body">
+                    <div class="dashboard-card bg-primary text-white h-100">
+                        <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-white-50 mb-2">Ventas a Crédito</h6>
-                                    <h2 class="mb-0">{{ $creditStats->total_credit_sales }}</h2>
+                                    <h6 class="text-white-50 mb-2 fw-normal text-uppercase" style="font-size:.75rem;letter-spacing:1px;">Ventas a Crédito</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size:2rem;">{{ $creditStats->total_credit_sales }}</h2>
+                                    <small class="text-white-50">ventas registradas</small>
                                 </div>
                                 <div>
-                                    <i class="bi bi-credit-card" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    <i class="bi bi-credit-card" style="font-size:3.5rem;opacity:.25;"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="dashboard-card bg-success text-white">
-                        <div class="card-body">
+                    <div class="dashboard-card bg-success text-white h-100">
+                        <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-white-50 mb-2">Total Cobrado</h6>
-                                    <h2 class="mb-0">₲ {{ number_format($creditStats->total_collected ?? 0, 0, ',', '.') }}</h2>
+                                    <h6 class="text-white-50 mb-2 fw-normal text-uppercase" style="font-size:.75rem;letter-spacing:1px;">Total Cobrado</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size:2rem;">₲ {{ number_format($creditStats->total_collected ?? 0, 0, ',', '.') }}</h2>
+                                    <small class="text-white-50">abonado en créditos</small>
                                 </div>
                                 <div>
-                                    <i class="bi bi-cash-stack" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    <i class="bi bi-cash-stack" style="font-size:3.5rem;opacity:.25;"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="dashboard-card bg-danger text-white">
-                        <div class="card-body">
+                    <div class="dashboard-card bg-danger text-white h-100">
+                        <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-white-50 mb-2">Saldo Pendiente</h6>
-                                    <h2 class="mb-0">₲ {{ number_format($creditStats->total_balance_due ?? 0, 0, ',', '.') }}</h2>
+                                    <h6 class="text-white-50 mb-2 fw-normal text-uppercase" style="font-size:.75rem;letter-spacing:1px;">Saldo Pendiente</h6>
+                                    <h2 class="mb-0 fw-bold" style="font-size:2rem;">₲ {{ number_format($creditStats->total_balance_due ?? 0, 0, ',', '.') }}</h2>
+                                    <small class="text-white-50">por cobrar</small>
                                 </div>
                                 <div>
-                                    <i class="bi bi-exclamation-triangle" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    <i class="bi bi-exclamation-triangle" style="font-size:3.5rem;opacity:.25;"></i>
                                 </div>
                             </div>
                         </div>
@@ -176,7 +179,8 @@
                         <i class="bi bi-exclamation-circle"></i> Ver Solo Saldos Pendientes
                     </a>
                 </div>
-                <form method="GET">\n                    <div class="row g-3">
+                <form method="GET">
+                    <div class="row g-3">
                         <div class="col-md-3">
                             <label for="search" class="form-label fw-bold">Buscar</label>
                             <input type="text" id="search" name="search" value="{{ request('search') }}"

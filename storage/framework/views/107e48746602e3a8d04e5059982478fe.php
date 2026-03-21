@@ -1,4 +1,13 @@
-<x-app-layout>
+<?php if (isset($component)) { $__componentOriginal4619374cef299e94fd7263111d0abc69 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal4619374cef299e94fd7263111d0abc69 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.app-layout','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component->withName('app-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
+<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
     <div class="py-4">
         <div class="container-fluid px-4">
 
@@ -36,38 +45,38 @@
                 }
             </style>
 
-            {{-- ── HERO ── --}}
+            
             <div class="page-hero d-flex justify-content-between align-items-center">
                 <div>
                     <h2 class="fw-bold mb-0"><i class="bi bi-bar-chart-line me-2"></i>Reportes de Ventas</h2>
-                    <p class="mb-0 opacity-75 small">Período: {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</p>
+                    <p class="mb-0 opacity-75 small">Período: <?php echo e(\Carbon\Carbon::parse($startDate)->format('d/m/Y')); ?> — <?php echo e(\Carbon\Carbon::parse($endDate)->format('d/m/Y')); ?></p>
                 </div>
-                <a href="{{ route('sales.index') }}" class="btn btn-light btn-sm">
+                <a href="<?php echo e(route('sales.index')); ?>" class="btn btn-light btn-sm">
                     <i class="bi bi-arrow-left me-1"></i>Volver
                 </a>
             </div>
 
-            {{-- ── FILTROS ── --}}
+            
             <div class="card chart-card mb-4">
                 <div class="card-body p-4">
                     <h5 class="section-title"><i class="bi bi-funnel me-2"></i>Filtros</h5>
-                    <form method="GET" action="{{ route('sales.reports') }}">
+                    <form method="GET" action="<?php echo e(route('sales.reports')); ?>">
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold small">Fecha Inicio</label>
-                                <input type="date" name="start_date" value="{{ $startDate }}" class="form-control form-control-sm">
+                                <input type="date" name="start_date" value="<?php echo e($startDate); ?>" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold small">Fecha Fin</label>
-                                <input type="date" name="end_date" value="{{ $endDate }}" class="form-control form-control-sm">
+                                <input type="date" name="end_date" value="<?php echo e($endDate); ?>" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold small">Vendedor</label>
                                 <select name="user_id" class="form-select form-select-sm">
                                     <option value="">Todos</option>
-                                    @foreach($users as $user)
-                                        <option value="{{ $user->id }}" {{ $userId == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
-                                    @endforeach
+                                    <?php $__currentLoopData = $users; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($user->id); ?>" <?php echo e($userId == $user->id ? 'selected' : ''); ?>><?php echo e($user->name); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
                             <div class="col-md-3 d-flex align-items-end">
@@ -80,14 +89,14 @@
                 </div>
             </div>
 
-            {{-- ── STATS ── --}}
+            
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-3">
                     <div class="stats-card" style="background:linear-gradient(135deg,#667eea,#764ba2)">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Total Ventas</div>
-                                <div class="fw-bold" style="font-size:1.5rem;">₲ {{ number_format($totalSales, 0, ',', '.') }}</div>
+                                <div class="fw-bold" style="font-size:1.5rem;">₲ <?php echo e(number_format($totalSales, 0, ',', '.')); ?></div>
                             </div>
                             <div class="icon-wrap"><i class="bi bi-currency-dollar"></i></div>
                         </div>
@@ -98,7 +107,7 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Cantidad</div>
-                                <div class="fw-bold" style="font-size:1.5rem;">{{ number_format($salesCount) }}</div>
+                                <div class="fw-bold" style="font-size:1.5rem;"><?php echo e(number_format($salesCount)); ?></div>
                                 <div class="small opacity-75">ventas</div>
                             </div>
                             <div class="icon-wrap"><i class="bi bi-cart-check"></i></div>
@@ -110,7 +119,7 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Venta Promedio</div>
-                                <div class="fw-bold" style="font-size:1.5rem;">₲ {{ number_format($averageSale, 0, ',', '.') }}</div>
+                                <div class="fw-bold" style="font-size:1.5rem;">₲ <?php echo e(number_format($averageSale, 0, ',', '.')); ?></div>
                             </div>
                             <div class="icon-wrap"><i class="bi bi-graph-up"></i></div>
                         </div>
@@ -121,7 +130,7 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Productos Vendidos</div>
-                                <div class="fw-bold" style="font-size:1.5rem;">{{ number_format($itemsSold ?? 0) }}</div>
+                                <div class="fw-bold" style="font-size:1.5rem;"><?php echo e(number_format($itemsSold ?? 0)); ?></div>
                                 <div class="small opacity-75">unidades</div>
                             </div>
                             <div class="icon-wrap"><i class="bi bi-box"></i></div>
@@ -130,59 +139,59 @@
                 </div>
             </div>
 
-            {{-- ── GRÁFICO VENTAS POR DÍA ── --}}
+            
             <div class="card chart-card mb-4">
                 <div class="card-body p-4">
                     <h5 class="section-title"><i class="bi bi-bar-chart me-2"></i>Ventas por Día</h5>
-                    @if($salesByDay->count() > 0)
+                    <?php if($salesByDay->count() > 0): ?>
                         <canvas id="chartByDay" height="90"></canvas>
-                    @else
+                    <?php else: ?>
                         <div class="text-center text-muted py-5">
                             <i class="bi bi-bar-chart" style="font-size:3rem;"></i>
                             <p class="mt-2 mb-0">Sin datos para el período seleccionado</p>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
 
-            {{-- ── PRODUCTOS + VENDEDORES ── --}}
+            
             <div class="row g-4 mb-4">
-                {{-- Gráfico top productos --}}
+                
                 <div class="col-lg-6">
                     <div class="card chart-card h-100">
                         <div class="card-body p-4">
                             <h5 class="section-title"><i class="bi bi-trophy me-2"></i>Top Productos</h5>
-                            @if($topProducts->count() > 0)
+                            <?php if($topProducts->count() > 0): ?>
                                 <canvas id="chartTopProducts" height="220"></canvas>
-                            @else
+                            <?php else: ?>
                                 <div class="text-center text-muted py-5">
                                     <i class="bi bi-inbox" style="font-size:3rem;"></i>
                                     <p class="mt-2 mb-0">Sin datos</p>
                                 </div>
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
-                {{-- Gráfico vendedores --}}
+                
                 <div class="col-lg-6">
                     <div class="card chart-card h-100">
                         <div class="card-body p-4">
                             <h5 class="section-title"><i class="bi bi-people me-2"></i>Ventas por Vendedor</h5>
-                            @if($salesByUser->count() > 0)
+                            <?php if($salesByUser->count() > 0): ?>
                                 <canvas id="chartByUser" height="220"></canvas>
-                            @else
+                            <?php else: ?>
                                 <div class="text-center text-muted py-5">
                                     <i class="bi bi-person-x" style="font-size:3rem;"></i>
                                     <p class="mt-2 mb-0">Sin datos</p>
                                 </div>
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- ── TABLA DETALLE ── --}}
+            
             <div class="card chart-card mb-4">
                 <div class="card-body p-4">
                     <h5 class="section-title"><i class="bi bi-table me-2"></i>Detalle de Ventas</h5>
@@ -199,31 +208,31 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($salesDetail as $sale)
+                                <?php $__empty_1 = true; $__currentLoopData = $salesDetail; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sale): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr>
-                                    <td class="small">{{ $sale->created_at->format('d/m/Y H:i') }}</td>
-                                    <td class="fw-semibold">{{ $sale->invoice_number ?: '-' }}</td>
-                                    <td>{{ $sale->customer_name ?: 'Cliente general' }}</td>
-                                    <td>{{ $sale->user->name ?? 'N/A' }}</td>
-                                    <td class="fw-bold text-success text-end">₲ {{ number_format($sale->total_amount, 0, ',', '.') }}</td>
+                                    <td class="small"><?php echo e($sale->created_at->format('d/m/Y H:i')); ?></td>
+                                    <td class="fw-semibold"><?php echo e($sale->invoice_number ?: '-'); ?></td>
+                                    <td><?php echo e($sale->customer_name ?: 'Cliente general'); ?></td>
+                                    <td><?php echo e($sale->user->name ?? 'N/A'); ?></td>
+                                    <td class="fw-bold text-success text-end">₲ <?php echo e(number_format($sale->total_amount, 0, ',', '.')); ?></td>
                                     <td>
-                                        @if(strtoupper($sale->status) === 'COMPLETED')
+                                        <?php if(strtoupper($sale->status) === 'COMPLETED'): ?>
                                             <span class="badge bg-success">Completada</span>
-                                        @elseif(strtoupper($sale->status) === 'PENDING')
+                                        <?php elseif(strtoupper($sale->status) === 'PENDING'): ?>
                                             <span class="badge bg-warning text-dark">Pendiente</span>
-                                        @else
-                                            <span class="badge bg-secondary">{{ $sale->status }}</span>
-                                        @endif
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary"><?php echo e($sale->status); ?></span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <tr>
                                     <td colspan="6" class="text-center py-5 text-muted">
                                         <i class="bi bi-cart-x" style="font-size:2.5rem;"></i>
                                         <p class="mt-2 mb-0">No hay ventas en el período seleccionado</p>
                                     </td>
                                 </tr>
-                                @endforelse
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -241,15 +250,15 @@
         const fmt = v => '₲ ' + new Intl.NumberFormat('es-PY').format(v);
         const COLORS = ['#667eea','#f5576c','#4facfe','#43e97b','#fa709a','#fee140','#764ba2','#f093fb','#00f2fe','#38f9d7'];
 
-        @if($salesByDay->count() > 0)
+        <?php if($salesByDay->count() > 0): ?>
         new Chart(document.getElementById('chartByDay'), {
             type: 'bar',
             data: {
-                labels: @json($chartDayLabels),
+                labels: <?php echo json_encode($chartDayLabels, 15, 512) ?>,
                 datasets: [
                     {
                         label: 'Total (₲)',
-                        data: @json($chartDayTotals),
+                        data: <?php echo json_encode($chartDayTotals, 15, 512) ?>,
                         backgroundColor: 'rgba(102,126,234,.75)',
                         borderColor: '#667eea',
                         borderWidth: 2,
@@ -258,7 +267,7 @@
                     },
                     {
                         label: 'Cantidad de ventas',
-                        data: @json($chartDayCounts),
+                        data: <?php echo json_encode($chartDayCounts, 15, 512) ?>,
                         type: 'line',
                         borderColor: '#f5576c',
                         backgroundColor: 'rgba(245,87,108,.1)',
@@ -282,16 +291,16 @@
                 }
             }
         });
-        @endif
+        <?php endif; ?>
 
-        @if($topProducts->count() > 0)
+        <?php if($topProducts->count() > 0): ?>
         new Chart(document.getElementById('chartTopProducts'), {
             type: 'bar',
             data: {
-                labels: @json($chartProdLabels),
+                labels: <?php echo json_encode($chartProdLabels, 15, 512) ?>,
                 datasets: [{
                     label: 'Ingresos',
-                    data: @json($chartProdRevenue),
+                    data: <?php echo json_encode($chartProdRevenue, 15, 512) ?>,
                     backgroundColor: COLORS,
                     borderRadius: 5,
                 }]
@@ -301,19 +310,19 @@
                 responsive: true,
                 plugins: {
                     legend: { display: false },
-                    tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.parsed.x) + '  (' + @json($chartProdQty)[ctx.dataIndex] + ' und.)' } }
+                    tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.parsed.x) + '  (' + <?php echo json_encode($chartProdQty, 15, 512) ?>[ctx.dataIndex] + ' und.)' } }
                 },
                 scales: { x: { ticks: { callback: v => fmt(v) } } }
             }
         });
-        @endif
+        <?php endif; ?>
 
-        @if($salesByUser->count() > 0)
+        <?php if($salesByUser->count() > 0): ?>
         new Chart(document.getElementById('chartByUser'), {
             type: 'doughnut',
             data: {
-                labels: @json($chartUserLabels),
-                datasets: [{ data: @json($chartUserTotals), backgroundColor: COLORS, borderWidth: 2, hoverOffset: 8 }]
+                labels: <?php echo json_encode($chartUserLabels, 15, 512) ?>,
+                datasets: [{ data: <?php echo json_encode($chartUserTotals, 15, 512) ?>, backgroundColor: COLORS, borderWidth: 2, hoverOffset: 8 }]
             },
             options: {
                 responsive: true,
@@ -323,7 +332,17 @@
                 }
             }
         });
-        @endif
+        <?php endif; ?>
     </script>
 
-</x-app-layout>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal4619374cef299e94fd7263111d0abc69)): ?>
+<?php $attributes = $__attributesOriginal4619374cef299e94fd7263111d0abc69; ?>
+<?php unset($__attributesOriginal4619374cef299e94fd7263111d0abc69); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal4619374cef299e94fd7263111d0abc69)): ?>
+<?php $component = $__componentOriginal4619374cef299e94fd7263111d0abc69; ?>
+<?php unset($__componentOriginal4619374cef299e94fd7263111d0abc69); ?>
+<?php endif; ?>
+<?php /**PATH C:\laragon\www\bodega-app\resources\views/sales/reports.blade.php ENDPATH**/ ?>

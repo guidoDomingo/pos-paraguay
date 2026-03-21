@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\User;
-use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -57,6 +56,7 @@ class SalesController extends Controller
             ->selectRaw('SUM(balance_due) as total_balance_due')
             ->selectRaw('SUM(amount_paid) as total_collected')
             ->first();
+
             
         return view('sales.index', compact('sales', 'creditStats'));
     }
@@ -155,10 +155,25 @@ class SalesController extends Controller
             ->limit(50)
             ->get();
         
+        // Datos pre-formateados para Chart.js
+        $chartDayLabels  = $salesByDay->map(fn($r) => \Carbon\Carbon::parse($r->date)->format('d/m'))->values()->toArray();
+        $chartDayTotals  = $salesByDay->pluck('total')->map(fn($v) => (float)$v)->values()->toArray();
+        $chartDayCounts  = $salesByDay->pluck('count')->map(fn($v) => (int)$v)->values()->toArray();
+
+        $chartProdLabels  = $topProducts->pluck('product_name')->values()->toArray();
+        $chartProdRevenue = $topProducts->pluck('total_revenue')->map(fn($v) => (float)$v)->values()->toArray();
+        $chartProdQty     = $topProducts->pluck('total_quantity')->map(fn($v) => (int)$v)->values()->toArray();
+
+        $chartUserLabels = $salesByUser->pluck('user_name')->values()->toArray();
+        $chartUserTotals = $salesByUser->pluck('total_amount')->map(fn($v) => (float)$v)->values()->toArray();
+
         return view('sales.reports', compact(
             'totalSales', 'salesCount', 'averageSale', 'itemsSold',
             'salesByDay', 'topProducts', 'salesByUser', 'users', 'salesDetail',
-            'startDate', 'endDate', 'userId'
+            'startDate', 'endDate', 'userId',
+            'chartDayLabels', 'chartDayTotals', 'chartDayCounts',
+            'chartProdLabels', 'chartProdRevenue', 'chartProdQty',
+            'chartUserLabels', 'chartUserTotals'
         ));
     }
 }
