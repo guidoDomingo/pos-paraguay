@@ -1,9 +1,18 @@
-<x-app-layout>
-    <x-slot name="header">
+<?php if (isset($component)) { $__componentOriginal4619374cef299e94fd7263111d0abc69 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal4619374cef299e94fd7263111d0abc69 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.app-layout','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component->withName('app-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
+<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+     <?php $__env->slot('header', null, []); ?> 
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             🧹 Gestión de Datos del Sistema
         </h2>
-    </x-slot>
+     <?php $__env->endSlot(); ?>
 
 <div class="container-fluid">
     <div class="row">
@@ -25,7 +34,7 @@
     <div class="page-body">
         <div class="container-xl">
             
-            @if(session('success'))
+            <?php if(session('success')): ?>
                 <div class="alert alert-success alert-dismissible" role="alert">
                     <div class="d-flex">
                         <div>
@@ -34,20 +43,21 @@
                                 <path d="M5 12l5 5l10 -10"></path>
                             </svg>
                         </div>
-                        <div>{{ session('success') }}</div>
+                        <div><?php echo e(session('success')); ?></div>
                     </div>
                     <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
                 </div>
-            @endif
+            <?php endif; ?>
 
-            @if($errors->any())
+            <?php if($errors->any()): ?>
                 <div class="alert alert-danger alert-dismissible" role="alert">
-                    <strong>Error de validación:</strong> {{ $errors->first() }}
+                    <strong>Error de validación:</strong> <?php echo e($errors->first()); ?>
+
                     <a class="btn-close" data-bs-dismiss="alert"></a>
                 </div>
-            @endif
+            <?php endif; ?>
 
-            @if(session('error'))
+            <?php if(session('error')): ?>
                 <div class="alert alert-danger alert-dismissible" role="alert">
                     <div class="d-flex">
                         <div>
@@ -58,18 +68,18 @@
                                 <path d="M12 16h.01"></path>
                             </svg>
                         </div>
-                        <div>{{ session('error') }}</div>
+                        <div><?php echo e(session('error')); ?></div>
                     </div>
                     <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
                 </div>
-            @endif
+            <?php endif; ?>
 
             <!-- Estado Actual del Sistema -->
             <div class="row mb-4">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">📊 Estado Actual - {{ $company->name }}</h3>
+                            <h3 class="card-title">📊 Estado Actual - <?php echo e($company->name); ?></h3>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -82,10 +92,11 @@
                                                 </div>
                                                 <div class="col">
                                                     <div class="font-weight-medium">
-                                                        {{ number_format($stats['sales_count']) }} Ventas
+                                                        <?php echo e(number_format($stats['sales_count'])); ?> Ventas
                                                     </div>
                                                     <div class="text-muted">
-                                                        Total: ${{ number_format($stats['total_sales_amount'], 0) }}
+                                                        Total: $<?php echo e(number_format($stats['total_sales_amount'], 0)); ?>
+
                                                     </div>
                                                 </div>
                                             </div>
@@ -102,7 +113,7 @@
                                                 </div>
                                                 <div class="col">
                                                     <div class="font-weight-medium">
-                                                        {{ number_format($stats['invoices_count']) }} Facturas
+                                                        <?php echo e(number_format($stats['invoices_count'])); ?> Facturas
                                                     </div>
                                                     <div class="text-muted">Electrónicas</div>
                                                 </div>
@@ -120,10 +131,10 @@
                                                 </div>
                                                 <div class="col">
                                                     <div class="font-weight-medium">
-                                                        {{ number_format($stats['products_count']) }} Productos
+                                                        <?php echo e(number_format($stats['products_count'])); ?> Productos
                                                     </div>
                                                     <div class="text-muted">
-                                                        {{ number_format($stats['stock_movements_count']) }} movimientos
+                                                        <?php echo e(number_format($stats['stock_movements_count'])); ?> movimientos
                                                     </div>
                                                 </div>
                                             </div>
@@ -140,10 +151,11 @@
                                                 </div>
                                                 <div class="col">
                                                     <div class="font-weight-medium">
-                                                        {{ $stats['database_size'] }} MB
+                                                        <?php echo e($stats['database_size']); ?> MB
                                                     </div>
                                                     <div class="text-muted">
-                                                        Última venta: {{ $stats['last_sale'] ?? 'Ninguna' }}
+                                                        Última venta: <?php echo e($stats['last_sale'] ?? 'Ninguna'); ?>
+
                                                     </div>
                                                 </div>
                                             </div>
@@ -164,8 +176,8 @@
                             <h3 class="card-title">🗑️ Opciones de Limpieza</h3>
                         </div>
                         
-                        <form action="{{ route('admin.data-management.clean') }}" method="POST" id="cleanForm">
-                            @csrf
+                        <form action="<?php echo e(route('admin.data-management.clean')); ?>" method="POST" id="cleanForm">
+                            <?php echo csrf_field(); ?>
                             <div class="card-body">
                                 
                                 <!-- Tipo de Limpieza -->
@@ -280,7 +292,7 @@
                             </div>
                         </form>
 
-                        {{-- Modal de confirmación final --}}
+                        
                         <div class="modal fade" id="confirmModal" tabindex="-1">
                             <div class="modal-dialog">
                                 <div class="modal-content border-danger">
@@ -407,4 +419,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-</x-app-layout>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal4619374cef299e94fd7263111d0abc69)): ?>
+<?php $attributes = $__attributesOriginal4619374cef299e94fd7263111d0abc69; ?>
+<?php unset($__attributesOriginal4619374cef299e94fd7263111d0abc69); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal4619374cef299e94fd7263111d0abc69)): ?>
+<?php $component = $__componentOriginal4619374cef299e94fd7263111d0abc69; ?>
+<?php unset($__componentOriginal4619374cef299e94fd7263111d0abc69); ?>
+<?php endif; ?><?php /**PATH C:\laragon\www\bodega-app\resources\views/admin/data-management/index.blade.php ENDPATH**/ ?>

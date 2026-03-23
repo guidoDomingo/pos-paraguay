@@ -50,63 +50,41 @@ class DataManagementController extends Controller
     public function cleanData(Request $request)
     {
         $request->validate([
-            'clean_type' => 'required|in:transactions,all_except_products,custom,total_cleanup',
-            'preserve_products' => 'boolean',
-            'preserve_customers' => 'boolean',
-            'reset_stock' => 'nullable|integer|min:0|max:999999',
-            'confirmation' => 'required|accepted'
+            'clean_type'         => 'required|in:transactions,all_except_products,custom,total_cleanup',
+            'preserve_products'  => 'nullable',
+            'preserve_customers' => 'nullable',
+            'reset_stock'        => 'nullable|integer|min:0|max:999999',
+            'confirmation'       => 'required|accepted',
         ]);
 
         $user = Auth::user();
         $company = $user->company;
 
         try {
-            DB::transaction(function () use ($request, $company, $user) {
-                
-                switch ($request->clean_type) {
-                    case 'transactions':
-                        $this->cleanTransactionalData($company->id);
-                        break;
-                        
-                    case 'all_except_products':
-                        $this->cleanTransactionalData($company->id);
-                        $this->cleanCustomerTransactions($company->id);
-                        break;
-                        
-                    case 'custom':
-                        $this->cleanTransactionalData($company->id);
-                        
-                        if (!$request->preserve_products && $request->reset_stock !== null) {
-                            $this->resetProductStock($company->id, $request->reset_stock);
-                        }
-                        
-                        if (!$request->preserve_customers) {
-                            $this->cleanCustomerTransactions($company->id);
-                        }
-                        break;
-                        
-                    case 'total_cleanup':
-                        $this->totalCleanup();
-                        break;
-                }
-
-                // Log de la actividad
-                \Log::info('Limpieza de datos del sistema ejecutada', [
-                    'user_id' => $user->id,
-                    'user_name' => $user->name,
-                    'company_id' => $company->id,
-                    'company_name' => $company->name,
-                    'clean_type' => $request->clean_type,
-                    'options' => $request->only(['preserve_products', 'preserve_customers', 'reset_stock'])
-                ]);
-            });
+            switch ($request->clean_type) {
+                case 'transactions':
+                    $this->cleanTransactionalData($company->id);
+                    break;
+                case 'all_except_products':
+                    $this->cleanTransactionalData($company->id);
+                    break;
+                case 'custom':
+                    $this->cleanTransactionalData($company->id);
+                    if (!$request->preserve_products && $request->reset_stock !== null) {
+                        $this->resetProductStock($company->id, $request->reset_stock);
+                    }
+                    break;
+                case 'total_cleanup':
+                    $this->totalCleanup();
+                    break;
+            }
 
             return redirect()->route('admin.data-management.index')
-                ->with('success', '¡Datos limpiados exitosamente! El sistema ha sido reiniciado.');
+                ->with('success', '¡Limpieza ejecutada exitosamente!');
 
         } catch (\Exception $e) {
             return redirect()->route('admin.data-management.index')
-                ->with('error', 'Error al limpiar datos: ' . $e->getMessage());
+                ->with('error', 'Error: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
         }
     }
 
@@ -244,77 +222,56 @@ class DataManagementController extends Controller
 
     private function totalCleanup()
     {
-        // LIMPIEZA TOTAL: Eliminar TODAS las tablas excepto usuarios y roles
-        // PERO manteniendo una empresa mínima para que los usuarios sigan funcionando
-        
-        // Deshabilitar restricciones de claves foráneas temporalmente
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
-        try {
-            // Tablas que deshabilitamos foreign key checks para borrar
-            $allTables = [
-                'payments',
-                'sale_items',
-                'sales', 
-                'invoice_items',
-                'invoices',
-                'inventory_movements',
-                'stock_movements',
-                'cash_registers',
-                'invoice_settings',
-                'products',
-                'categories',
-                'customers',
-                'suppliers',
-                'warehouses',
-                'fiscal_stamps',
-            ];
+        // Guardar usuarios antes de borrar companies (users.company_id tiene ON DELETE CASCADE)
+        $users = DB::table('users')->get();
 
-            // Limpiar todas las tablas transaccionales
-            foreach ($allTables as $table) {
-                try {
-                    $deleted = DB::table($table)->delete();
-                    \Log::info("Limpieza total - Tabla {$table}: {$deleted} registros eliminados");
-                } catch (\Exception $e) {
-                    \Log::warning("Error en limpieza total - tabla {$table}: " . $e->getMessage());
-                }
-            }
+        // Desvincular usuarios de la empresa para evitar el cascade al borrar companies
+        DB::table('users')->update(['company_id' => null]);
 
-            // Limpiar companies pero mantener una empresa básica para los usuarios
-            $companyCount = DB::table('companies')->count();
-            if ($companyCount > 0) {
-                // Eliminar configuraciones de empresa
-                DB::table('company_config')->delete();
-                
-                // Eliminar todas las empresas
-                DB::table('companies')->delete();
-                
-                // Crear una empresa básica para mantener los usuarios funcionando
-                $companyId = DB::table('companies')->insertGetId([
-                    'name' => 'Sistema Reiniciado',
-                    'ruc' => '80000000',
-                    'dv' => '1',
-                    'address' => 'Sistema reiniciado - Ejecuta seeders para datos completos',
-                    'phone' => '000000000',
-                    'email' => 'sistema@reiniciado.com',
-                    'activity_description' => 'Sistema POS reiniciado',
-                    'taxpayer_type' => 'CONTRIBUYENTE',
-                    'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        // Orden respetando FK: primero tablas hijo, luego tablas padre
+        $ordered = [
+            'payments',             // → sales
+            'sale_items',           // → sales, products
+            'invoice_items',        // → invoices
+            'invoices',             // → sales, companies
+            'sales',                // → companies, users
+            'inventory_movements',  // → products, companies
+            'stock_movements',      // → products, companies
+            'cash_registers',       // → companies
+            'invoice_settings',     // sin FK a companies
+            'fiscal_stamps',        // → companies
+            'products',             // → categories, companies
+            'categories',           // → companies
+            'customers',            // → companies
+            'suppliers',            // → companies
+            'warehouses',           // → companies
+            'company_config',       // → companies
+        ];
 
-                // Actualizar todos los usuarios para que pertenezcan a esta nueva empresa
-                DB::table('users')->update(['company_id' => $companyId]);
-                
-                \Log::info("Limpieza total - Empresas: todas eliminadas y recreada empresa básica");
-            }
-
-        } finally {
-            // Rehabilitar restricciones de claves foráneas
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        foreach ($ordered as $table) {
+            DB::table($table)->delete();
         }
 
-        \Log::info("LIMPIEZA TOTAL COMPLETADA - Solo se mantuvieron usuarios y roles");
+        // Eliminar todas las empresas y recrear una base
+        DB::table('companies')->delete();
+
+        $companyId = DB::table('companies')->insertGetId([
+            'name'                 => 'Mi Empresa',
+            'trade_name'           => null,
+            'ruc'                  => '0000000',
+            'dv'                   => '0',
+            'address'              => '',
+            'phone'                => '',
+            'email'                => '',
+            'logo_path'            => null,
+            'activity_description' => '',
+            'taxpayer_type'        => 'CONTRIBUYENTE',
+            'is_active'            => 1,
+            'created_at'           => now(),
+            'updated_at'           => now(),
+        ]);
+
+        // Apuntar todos los usuarios a la nueva empresa
+        DB::table('users')->update(['company_id' => $companyId]);
     }
 }
