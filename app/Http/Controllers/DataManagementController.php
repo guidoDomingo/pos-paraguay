@@ -222,12 +222,6 @@ class DataManagementController extends Controller
 
     private function totalCleanup()
     {
-        // Guardar usuarios antes de borrar companies (users.company_id tiene ON DELETE CASCADE)
-        $users = DB::table('users')->get();
-
-        // Desvincular usuarios de la empresa para evitar el cascade al borrar companies
-        DB::table('users')->update(['company_id' => null]);
-
         // Orden respetando FK: primero tablas hijo, luego tablas padre
         $ordered = [
             'payments',             // → sales
@@ -252,8 +246,11 @@ class DataManagementController extends Controller
             DB::table($table)->delete();
         }
 
-        // Eliminar todas las empresas y recrear una base
+        // Deshabilitar FK temporalmente solo para borrar companies
+        // (users.company_id tiene ON DELETE CASCADE pero no podemos ponerlo en null por NOT NULL constraint)
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         DB::table('companies')->delete();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $companyId = DB::table('companies')->insertGetId([
             'name'                 => 'Mi Empresa',
