@@ -46,8 +46,12 @@ class InvoiceSettingController extends Controller
         ]);
 
         $settings = InvoiceSetting::getSettings();
-        
-        $data = $request->all();
+
+        // Usar solo los campos presentes en el request; los ausentes conservan su valor actual
+        $data = array_merge(
+            $settings->toArray(),
+            array_filter($request->all(), fn($v) => $v !== null)
+        );
         $data['invoice_auto_increment'] = $request->has('invoice_auto_increment');
         $data['ticket_auto_increment'] = $request->has('ticket_auto_increment');
         $data['auto_print_tickets'] = $request->has('auto_print_tickets');

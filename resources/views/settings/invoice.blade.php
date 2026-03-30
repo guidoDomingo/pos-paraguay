@@ -154,7 +154,26 @@
                         </div>
 
                         {{-- Impresión --}}
-                        <div class="card mb-3 shadow-sm">
+                        <div class="card mb-3 shadow-sm"
+                             x-data="{
+                                btPorts: [],
+                                btLoading: false,
+                                btTesting: false,
+                                btMsg: '',
+                                detectPorts() {
+                                    this.btLoading = true;
+                                    this.btMsg = '';
+                                    fetch('{{ route('bluetooth.ports') }}')
+                                        .then(r => r.json())
+                                        .then(d => {
+                                            this.btPorts = d.ports || [];
+                                            if (this.btPorts.length === 0) this.btMsg = 'No se encontraron puertos Bluetooth. Emparejá la impresora primero.';
+                                        })
+                                        .catch(() => { this.btMsg = 'Error al detectar puertos.'; })
+                                        .finally(() => { this.btLoading = false; });
+                                }
+                             }"
+                             x-init="detectPorts()">
                             <div class="card-header fw-bold">
                                 <i class="bi bi-printer me-2"></i>Configuración de Impresión
                             </div>
@@ -180,6 +199,72 @@
                                         <input type="number" name="default_iva_rate" class="form-control form-control-sm"
                                             value="{{ old('default_iva_rate', $settings->default_iva_rate ?? 10) }}"
                                             min="0" max="100" step="0.01">
+                                    </div>
+
+                                    {{-- Impresora Bluetooth / Puerto COM --}}
+                                    <div class="col-12 mt-2">
+                                        <hr class="my-2">
+                                        <label class="form-label form-label-sm fw-semibold">
+                                            <i class="bi bi-bluetooth me-1 text-primary"></i>Impresora Bluetooth (Puerto COM)
+                                        </label>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <select name="ticket_printer" class="form-select form-select-sm">
+                                                <option value="">— Sin impresora Bluetooth —</option>
+                                                <template x-for="p in btPorts" :key="p.port">
+                                                    <option :value="p.port"
+                                                            :selected="p.port === '{{ $settings->ticket_printer ?? '' }}'"
+                                                            x-text="p.port + ' — ' + p.name"></option>
+                                                </template>
+                                                {{-- Opción fija por si no se detectó --}}
+                                                @if($settings->ticket_printer ?? false)
+                                                    <option value="{{ $settings->ticket_printer }}" selected>
+                                                        {{ $settings->ticket_printer }} (guardado)
+                                                    </option>
+                                                @endif
+                                            </select>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm text-nowrap"
+                                                    @click="detectPorts()" :disabled="btLoading">
+                                                <span x-show="btLoading" class="spinner-border spinner-border-sm"></span>
+                                                <i x-show="!btLoading" class="bi bi-arrow-clockwise"></i>
+                                                Detectar
+                                            </button>
+                                        </div>
+                                        <div x-show="btMsg" class="form-text text-warning mt-1" x-text="btMsg"></div>
+                                        <div class="form-text text-muted">
+                                            Emparejá la 3nStar PPT305BT por Bluetooth en Windows. Aparecerá como "Standard Serial over Bluetooth link (COMx)".
+                                        </div>
+
+                                        {{-- Botón impresión de prueba --}}
+                                        <div class="mt-2 d-flex align-items-center gap-2"
+                                             x-data="{ testing: false, testMsg: '', testOk: null,
+                                                sendTest() {
+                                                    this.testing = true; this.testMsg = ''; this.testOk = null;
+                                                    fetch('{{ route('print.bluetooth.test') }}', {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                                            'Accept': 'application/json'
+                                                        }
+                                                    })
+                                                    .then(r => r.json())
+                                                    .then(d => { this.testOk = d.success; this.testMsg = d.success ? d.message : d.error; })
+                                                    .catch(() => { this.testOk = false; this.testMsg = 'Error de conexión'; })
+                                                    .finally(() => { this.testing = false; });
+                                                }
+                                             }">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-info"
+                                                    @click="sendTest()"
+                                                    :disabled="testing">
+                                                <span x-show="testing" class="spinner-border spinner-border-sm me-1"></span>
+                                                <i x-show="!testing" class="bi bi-printer me-1"></i>
+                                                Imprimir prueba
+                                            </button>
+                                            <span x-show="testMsg"
+                                                  :class="testOk ? 'text-success' : 'text-danger'"
+                                                  class="small fw-semibold"
+                                                  x-text="testMsg"></span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

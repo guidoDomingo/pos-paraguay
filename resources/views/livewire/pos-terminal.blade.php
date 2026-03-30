@@ -721,83 +721,24 @@
     <!-- Script principal -->
     <script>
         // Escuchar evento de venta completada para mostrar modal de impresión
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, setting up Livewire listeners');
-        });
-        
-        document.addEventListener('livewire:initialized', function() {
-            console.log('Livewire initialized, setting up sale-completed listener');
-            Livewire.on('sale-completed', function(data) {
-                console.log('sale-completed event received:', data);
-                var saleId = data.saleId;
-                var documentType = data.documentType; 
-                var saleNumber = data.saleNumber;
-                showPrintModal(saleId, documentType, saleNumber);
-            });
-        });
+        // El modal de impresión es manejado por Livewire ($showPrintModal)
+        // Los botones del modal llaman directamente a directPrint(), openPreview(), downloadPDF()
 
-        // También intentar con el evento directo de Livewire
-        if (typeof Livewire !== 'undefined') {
-            Livewire.on('sale-completed', function(data) {
-                console.log('sale-completed event received (direct):', data);
-                var saleId = data.saleId;
-                var documentType = data.documentType;
-                var saleNumber = data.saleNumber;
-                showPrintModal(saleId, documentType, saleNumber);
-            });
+        function openPreview(saleId, documentType) {
+            var url = documentType === 'factura'
+                ? '/pdf/preview/invoice/' + saleId
+                : '/pdf/preview/ticket/' + saleId;
+            window.open(url, '_blank');
         }
 
-        // Función para mostrar modal de impresión
-        function showPrintModal(saleId, documentType, saleNumber) {
-            console.log('showPrintModal called with:', { saleId: saleId, documentType: documentType, saleNumber: saleNumber });
-            var modal = document.getElementById('printModal');
-            var modalTitle = document.getElementById('printModalTitle');
-            var modalBody = document.getElementById('printModalBody');
-            var printBtn = document.getElementById('printConfirmBtn');
-            var directPrintBtn = document.getElementById('directPrintBtn');
-            var previewBtn = document.getElementById('previewBtn');
-            
-            if (!modal) {
-                console.error('Modal printModal not found');
-                return;
-            }
-            
-            modalTitle.textContent = documentType === 'factura' ? 'Factura Generada' : 'Ticket Generado';
-            modalBody.innerHTML = '<div class="text-center">' +
-                '<i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i>' +
-                '<h5>¡Venta procesada exitosamente!</h5>' +
-                '<p class="text-muted">Número: ' + saleNumber + '</p>' +
-                '<p>¿Cómo deseas imprimir el ' + documentType + '?</p>' +
-                '</div>';
-            
-            // Configurar botón de descarga PDF
-            printBtn.onclick = function() {
-                if (documentType === 'factura') {
-                    window.open('/pdf/invoice/' + saleId, '_blank');
-                } else {
-                    window.open('/pdf/ticket/' + saleId, '_blank');
-                }
-                bootstrap.Modal.getInstance(modal).hide();
-            };
-
-            // Configurar botón de impresión directa
-            directPrintBtn.onclick = function() {
-                directPrint(saleId, documentType);
-                bootstrap.Modal.getInstance(modal).hide();
-            };
-            
-            previewBtn.onclick = function() {
-                if (documentType === 'factura') {
-                    window.open('/pdf/preview/invoice/' + saleId, '_blank');
-                } else {
-                    window.open('/pdf/preview/ticket/' + saleId, '_blank');
-                }
-            };
-            
-            new bootstrap.Modal(modal).show();
+        function downloadPDF(saleId, documentType) {
+            var url = documentType === 'factura'
+                ? '/pdf/invoice/' + saleId
+                : '/pdf/ticket/' + saleId;
+            window.open(url, '_blank');
         }
 
-        // Función para impresión directa
+        // Función para impresión directa Bluetooth
         function directPrint(saleId, documentType) {
             // Mostrar indicador de carga
             var loadingToast = showToast('Enviando a impresora...', 'info');
@@ -806,8 +747,7 @@
             
             // Solo soportamos impresión directa para tickets por ahora
             if (documentType === 'ticket') {
-                // Primero intentar el método de servidor directo
-                fetch('/direct-print-raw/' + saleId, {
+                fetch('/print/bluetooth/' + saleId, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -826,24 +766,14 @@
                 .then(function(result) {
                     if (result.success) {
                         showToast('Ticket enviado a impresora correctamente', 'success');
-                        if (result.printerInfo) {
-                            console.log('Impresora utilizada:', result.printerInfo);
-                        }
-                        console.log('Print job sent successfully:', result);
                     } else {
-                        if (result.fallback === 'browser_print') {
-                            console.log('Impresión directa no disponible, usando método silencioso...');
-                            showToast('Usando método de impresión silencioso...', 'info');
-                            printSilently(saleId);
-                        } else {
-                            throw new Error(result.error || 'Error desconocido en la impresión');
-                        }
+                        showToast('Error: ' + (result.error || 'No se pudo imprimir'), 'error');
+                        console.error('Bluetooth print error:', result);
                     }
                 })
                 .catch(function(error) {
-                    console.error('Print error:', error);
-                    console.log('Intentando método de impresión silencioso...');
-                    printSilently(saleId);
+                    showToast('Error: ' + error.message, 'error');
+                    console.error('Bluetooth print error:', error);
                 });
             } else {
                 // Para facturas, usar PDF por ahora
@@ -1249,40 +1179,36 @@
 
         window.directPrint = function(saleId, documentType) {
             if (documentType === 'ticket') {
-                fetch('/direct-print/' + saleId)
-                    .then(function(response) {
-                        if (!response.ok) throw new Error('Error en impresión');
-                        return response.text();
+                var isAndroid = /android/i.test(navigator.userAgent);
+
+                if (isAndroid) {
+                    // Android: obtener ESC/POS en base64 y abrir RawBT
+                    showToast('Preparando impresión...', 'info');
+                    fetch('/print/rawbt/' + saleId, { headers: { 'Accept': 'application/json' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            if (!data.success) throw new Error(data.error || 'Error al generar ticket');
+                            window.location.href = 'rawbt:' + data.base64;
+                        })
+                        .catch(function(e) { showToast('Error: ' + e.message, 'error'); });
+                } else {
+                    // Windows/PC: usar COM port del servidor
+                    fetch('/print/bluetooth/' + saleId, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
                     })
-                    .then(function(content) {
-                        // Crear iframe oculto para impresión
-                        var printFrame = document.createElement('iframe');
-                        printFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-                        document.body.appendChild(printFrame);
-                        
-                        var doc = printFrame.contentWindow.document;
-                        doc.open();
-                        var htmlContent = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket</title><style>body{font-family:monospace;font-size:12px;margin:0;padding:10px;width:80mm;}@media print{body{margin:0;padding:0;}@page{size:80mm auto;margin:0;}}</style></head><body>' + content + '</body></html>';
-                        doc.write(htmlContent);
-                        doc.close();
-                        
-                        setTimeout(function() {
-                            printFrame.contentWindow.print();
-                            setTimeout(function() {
-                                document.body.removeChild(printFrame);
-                                if (window.closePrintModal) window.closePrintModal();
-                            }, 1000);
-                        }, 500);
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            showToast('Ticket enviado a impresora', 'success');
+                        } else {
+                            showToast('Error: ' + (data.error || 'No se pudo imprimir'), 'error');
+                        }
                     })
-                    .catch(function(error) {
-                        alert('Error: ' + error.message);
-                    });
+                    .catch(function(e) { showToast('Error: ' + e.message, 'error'); });
+                }
             } else {
-                var w = window.open('/pdf/invoice/' + saleId, '_blank');
-                setTimeout(function() {
-                    w.print();
-                    if (window.closePrintModal) window.closePrintModal();
-                }, 1000);
+                window.open('/pdf/invoice/' + saleId, '_blank');
             }
         };
 

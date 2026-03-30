@@ -82,6 +82,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/direct-print-raw/{sale}', [DirectPrintController::class, 'printTicketRaw'])->name('direct.print.raw');
     Route::get('/print/ticket/{sale}', [DirectPrintController::class, 'printTicket'])->name('print.ticket.direct');
     Route::get('/print/ticket-escpos/{sale}', [DirectPrintController::class, 'printTicketESCPOS'])->name('print.ticket.escpos');
+    Route::post('/print/bluetooth/{sale}', [DirectPrintController::class, 'printBluetooth'])->name('print.bluetooth');
+    Route::post('/print/bluetooth-test', [DirectPrintController::class, 'printTest'])->name('print.bluetooth.test');
+    Route::get('/api/bluetooth-ports', [DirectPrintController::class, 'detectBluetoothPorts'])->name('bluetooth.ports');
+    Route::get('/print/rawbt/{sale}', [DirectPrintController::class, 'escposBase64'])->name('print.rawbt');
     Route::get('/print/debug/{sale}', function($sale) {
         try {
             \Log::info("Debug route called for sale: {$sale}");

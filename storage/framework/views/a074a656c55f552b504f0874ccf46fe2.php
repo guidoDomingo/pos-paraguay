@@ -332,6 +332,14 @@
                                                 <i class="bi bi-file-earmark-pdf"></i>
                                             </a>
                                             <?php endif; ?>
+                                            <?php if(\App\Models\InvoiceSetting::getSettings()->ticket_printer): ?>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-info btn-print-bt"
+                                                    data-sale-id="<?php echo e($sale->id); ?>"
+                                                    title="Imprimir ticket en impresora Bluetooth">
+                                                <i class="bi bi-bluetooth"></i>
+                                            </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -494,6 +502,43 @@ unset($__errorArgs, $__bag); ?>
                         form.reset();
                     });
                 }
+            </script>
+
+            
+            <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('.btn-print-bt').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        const saleId = this.dataset.saleId;
+                        const icon   = this.querySelector('i');
+                        icon.className = 'spinner-border spinner-border-sm';
+                        this.disabled = true;
+
+                        fetch('/print/bluetooth/' + saleId, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json',
+                            },
+                        })
+                        .then(r => r.json())
+                        .then(function (data) {
+                            if (data.success) {
+                                icon.className = 'bi bi-check-lg text-success';
+                                setTimeout(() => { icon.className = 'bi bi-bluetooth'; }, 2000);
+                            } else {
+                                alert('Error: ' + (data.error || 'No se pudo imprimir'));
+                                icon.className = 'bi bi-bluetooth';
+                            }
+                        })
+                        .catch(function () {
+                            alert('Error de conexión al intentar imprimir');
+                            icon.className = 'bi bi-bluetooth';
+                        })
+                        .finally(() => { btn.disabled = false; });
+                    });
+                });
+            });
             </script>
         </div>
     </div>

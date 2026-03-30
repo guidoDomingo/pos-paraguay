@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(grep -n \"amount_paid\\\\|total_collected\\\\|balance_due\" c:/laragon/www/bodega-app/database/migrations/*.php)",
-      "Bash(grep -v \"//\")"
+      "Bash(grep -v \"//\")",
+      "Bash(xargs grep:*)",
+      "Bash(php -r \"echo iconv\\(''''UTF-8'''', ''''CP850//TRANSLIT//IGNORE'''', ''''Guaraníes Gs. 30.000 ¡Gracias!''''\\);\")",
+      "Bash(xxd)"
     ]
   }
 }
