@@ -1182,15 +1182,28 @@
                 var isAndroid = /android/i.test(navigator.userAgent);
 
                 if (isAndroid) {
-                    // Android: obtener ESC/POS en base64 y abrir RawBT
-                    showToast('Preparando impresión...', 'info');
+                    // Android: obtener ESC/POS en base64 y enviar al PrintBridge local
+                    showToast('Enviando a impresora...', 'info');
                     fetch('/print/rawbt/' + saleId, { headers: { 'Accept': 'application/json' } })
                         .then(function(r) { return r.json(); })
                         .then(function(data) {
                             if (!data.success) throw new Error(data.error || 'Error al generar ticket');
-                            window.location.href = 'rawbt:' + data.base64;
+                            // Enviar al servidor HTTP local de la app PrintBridge
+                            return fetch('http://localhost:18000/print', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ base64: data.base64 })
+                            });
                         })
-                        .catch(function(e) { showToast('Error: ' + e.message, 'error'); });
+                        .then(function(r) { return r.json(); })
+                        .then(function(result) {
+                            if (result.success) {
+                                showToast('Ticket impreso correctamente', 'success');
+                            } else {
+                                showToast('Error: ' + (result.error || 'No se pudo imprimir'), 'error');
+                            }
+                        })
+                        .catch(function(e) { showToast('Error: ' + e.message + ' — ¿Está abierta la app PrintBridge?', 'error'); });
                 } else {
                     // Windows/PC: usar COM port del servidor
                     fetch('/print/bluetooth/' + saleId, {
