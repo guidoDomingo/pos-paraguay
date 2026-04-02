@@ -1178,50 +1178,64 @@
         };
 
         window.directPrint = function(saleId, documentType) {
-            if (documentType === 'ticket') {
-                var isAndroid = /android/i.test(navigator.userAgent);
+            var printerType = '{{ $printerSettings->printer_type ?? 'thermal' }}';
 
-                if (isAndroid) {
-                    // Android: obtener ESC/POS en base64 y enviar al PrintBridge local
-                    showToast('Enviando a impresora...', 'info');
-                    fetch('/print/rawbt/' + saleId, { headers: { 'Accept': 'application/json' } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(data) {
-                            if (!data.success) throw new Error(data.error || 'Error al generar ticket');
-                            // Enviar al servidor HTTP local de la app PrintBridge
-                            return fetch('http://localhost:18000/print', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ base64: data.base64 })
-                            });
-                        })
-                        .then(function(r) { return r.json(); })
-                        .then(function(result) {
-                            if (result.success) {
-                                showToast('Ticket impreso correctamente', 'success');
-                            } else {
-                                showToast('Error: ' + (result.error || 'No se pudo imprimir'), 'error');
-                            }
-                        })
-                        .catch(function(e) { showToast('Error: ' + e.message + ' — ¿Está abierta la app PrintBridge?', 'error'); });
-                } else {
-                    // Windows/PC: usar COM port del servidor
-                    fetch('/print/bluetooth/' + saleId, {
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
-                    })
+            // Modo PDF: abrir PDF y disparar diálogo de impresión del navegador
+            if (printerType === 'pdf') {
+                var pdfUrl = documentType === 'factura'
+                    ? '/pdf/invoice/' + saleId
+                    : '/pdf/ticket/' + saleId;
+                var printWin = window.open(pdfUrl, '_blank');
+                if (printWin) {
+                    printWin.onload = function() { printWin.focus(); printWin.print(); };
+                }
+                return;
+            }
+
+            // Modo térmica (ESC/POS)
+            var isAndroid = /android/i.test(navigator.userAgent);
+            var rawbtUrl = documentType === 'factura'
+                ? '/print/rawbt/invoice/' + saleId
+                : '/print/rawbt/' + saleId;
+            var comUrl = documentType === 'factura'
+                ? '/print/bluetooth/invoice/' + saleId
+                : '/print/bluetooth/' + saleId;
+
+            if (isAndroid) {
+                showToast('Enviando a impresora...', 'info');
+                fetch(rawbtUrl, { headers: { 'Accept': 'application/json' } })
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
-                        if (data.success) {
-                            showToast('Ticket enviado a impresora', 'success');
+                        if (!data.success) throw new Error(data.error || 'Error al generar documento');
+                        return fetch('http://localhost:18000/print', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ base64: data.base64 })
+                        });
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(result) {
+                        if (result.success) {
+                            showToast('Impreso correctamente', 'success');
                         } else {
-                            showToast('Error: ' + (data.error || 'No se pudo imprimir'), 'error');
+                            showToast('Error: ' + (result.error || 'No se pudo imprimir'), 'error');
                         }
                     })
-                    .catch(function(e) { showToast('Error: ' + e.message, 'error'); });
-                }
+                    .catch(function(e) { showToast('Error: ' + e.message + ' — ¿Está abierta la app PrintBridge?', 'error'); });
             } else {
-                window.open('/pdf/invoice/' + saleId, '_blank');
+                fetch(comUrl, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast('Enviado a impresora', 'success');
+                    } else {
+                        showToast('Error: ' + (data.error || 'No se pudo imprimir'), 'error');
+                    }
+                })
+                .catch(function(e) { showToast('Error: ' + e.message, 'error'); });
             }
         };
 

@@ -54,6 +54,71 @@ class DirectPrintController extends Controller
     }
     
     /**
+     * Devuelve ESC/POS de FACTURA en base64 para PrintBridge (Android)
+     */
+    public function escposBase64Invoice($saleId)
+    {
+        try {
+            $sale = Sale::with(['saleItems.product', 'customer', 'user'])->find($saleId);
+
+            if (!$sale) {
+                return response()->json(['success' => false, 'error' => 'Venta no encontrada'], 404);
+            }
+
+            $escpos = $this->generateInvoiceESCPOS($sale);
+
+            return response()->json([
+                'success' => true,
+                'base64'  => base64_encode($escpos),
+                'sale'    => $sale->sale_number,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Impresión de FACTURA al puerto COM Bluetooth (Windows)
+     */
+    public function printBluetoothInvoice($saleId)
+    {
+        try {
+            $sale = Sale::with(['saleItems.product', 'customer', 'user'])->find($saleId);
+
+            if (!$sale) {
+                return response()->json(['success' => false, 'error' => 'Venta no encontrada'], 404);
+            }
+
+            $settings = InvoiceSetting::getSettings();
+            $comPort  = $settings->ticket_printer ?? null;
+
+            if (!$comPort) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'No hay puerto COM configurado. Configurá la impresora en Configuración → Facturación.',
+                ], 422);
+            }
+
+            $escPos = $this->generateInvoiceESCPOS($sale);
+            $result = $this->sendToComPort($comPort, $escPos);
+
+            if (!$result['success']) {
+                return response()->json(['success' => false, 'error' => $result['error']], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Factura enviada a $comPort",
+                'sale'    => $sale->sale_number,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Devuelve los datos ESC/POS en base64 para RawBT (Android)
      */
     public function escposBase64($saleId)
@@ -786,6 +851,89 @@ class DirectPrintController extends Controller
 
         // Corte de papel
         $content .= $gs . 'V' . chr(1); // corte parcial
+
+        return $content;
+    }
+
+    private function generateInvoiceESCPOS($sale)
+    {
+        $settings = InvoiceSetting::getSettings();
+
+        $esc = chr(27);
+        $gs  = chr(29);
+        $lf  = chr(10);
+        $W   = 32;
+
+        $lines = [];
+
+        // Cabecera empresa
+        $lines[] = $this->pad(strtoupper($settings->company_name ?? 'MI EMPRESA'), $W, 'center');
+        if ($settings->company_ruc) {
+            $lines[] = $this->pad('RUC: ' . $settings->company_ruc, $W, 'center');
+        }
+        if ($settings->company_address) {
+            $lines[] = $this->pad($settings->company_address, $W, 'center');
+        }
+        if ($settings->company_phone) {
+            $lines[] = $this->pad('Tel: ' . $settings->company_phone, $W, 'center');
+        }
+        $lines[] = str_repeat('-', $W);
+        $lines[] = $this->pad('FACTURA', $W, 'center');
+        $lines[] = str_repeat('-', $W);
+        $lines[] = 'Nro   : ' . $sale->sale_number;
+        $lines[] = 'Fecha : ' . $sale->sale_date->format('d/m/Y H:i');
+        $lines[] = 'Cajero: ' . ($sale->user->name ?? 'Admin');
+
+        // Datos del cliente
+        if ($sale->customer_name || ($sale->customer && $sale->customer->name)) {
+            $clientName = $sale->customer_name ?? ($sale->customer->name ?? '');
+            $clientRuc  = $sale->customer_ruc  ?? ($sale->customer->ruc  ?? '');
+            $lines[] = str_repeat('.', $W);
+            $lines[] = 'Cliente: ' . mb_substr($clientName, 0, $W - 9);
+            if ($clientRuc) {
+                $lines[] = 'RUC    : ' . $clientRuc;
+            }
+        }
+
+        $lines[] = str_repeat('.', $W);
+
+        // Productos
+        foreach ($sale->saleItems as $item) {
+            $name = mb_substr($item->product_name, 0, $W);
+            $lines[] = $name;
+            $left  = number_format($item->quantity, 0) . ' x Gs.' . number_format($item->unit_price, 0);
+            $right = 'Gs.' . number_format($item->total_price, 0);
+            $lines[] = $this->pad2col($left, $right, $W);
+        }
+
+        $lines[] = str_repeat('-', $W);
+
+        // Totales
+        $lines[] = $this->pad2col('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W);
+        $lines[] = $this->pad2col('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W);
+        $lines[] = str_repeat('-', $W);
+        $lines[] = $this->pad2col('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W);
+        $lines[] = str_repeat('=', $W);
+
+        // Pago
+        $lines[] = $this->pad2col('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W);
+        $lines[] = $this->pad2col('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W);
+        if ($sale->change_amount > 0) {
+            $lines[] = $this->pad2col('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W);
+        }
+        $lines[] = str_repeat('.', $W);
+        $lines[] = $this->pad('Gracias por su compra!', $W, 'center');
+        $lines[] = '';
+        $lines[] = '';
+        $lines[] = '';
+
+        $content = $esc . '@';
+        foreach ($lines as $line) {
+            $encoded  = iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $line);
+            $content .= $encoded . $lf;
+        }
+
+        $content .= $gs . 'V' . chr(1);
 
         return $content;
     }

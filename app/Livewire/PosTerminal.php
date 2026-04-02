@@ -10,6 +10,7 @@ use App\Models\CashRegister;
 use App\Models\StockMovement;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\InvoiceSetting;
 use App\Services\InvoiceNumberService;
 use App\Services\FacturaSendService;
 use Illuminate\Support\Facades\Auth;
@@ -661,7 +662,9 @@ class PosTerminal extends Component
             ->orderBy('name')
             ->get();
 
-        return view('livewire.pos-terminal', compact('customers', 'products'));
+        $printerSettings = InvoiceSetting::getSettings();
+
+        return view('livewire.pos-terminal', compact('customers', 'products', 'printerSettings'));
     }
 
     // =====================================================

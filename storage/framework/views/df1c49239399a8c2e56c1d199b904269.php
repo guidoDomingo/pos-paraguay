@@ -215,6 +215,25 @@
                                     <div class="col-12 mt-2">
                                         <hr class="my-2">
                                         <label class="form-label form-label-sm fw-semibold">
+                                            <i class="bi bi-printer-fill me-1"></i>Tipo de impresora
+                                        </label>
+                                        <select name="printer_type" class="form-select form-select-sm">
+                                            <option value="thermal" <?php echo e(($settings->printer_type ?? 'thermal') === 'thermal' ? 'selected' : ''); ?>>
+                                                Impresora térmica (ESC/POS) — ticket y factura por la térmica
+                                            </option>
+                                            <option value="pdf" <?php echo e(($settings->printer_type ?? '') === 'pdf' ? 'selected' : ''); ?>>
+                                                Impresora normal (PDF) — abre diálogo de impresión del navegador
+                                            </option>
+                                        </select>
+                                        <div class="form-text text-muted">
+                                            Define cómo se imprime al presionar "Imprimir Directo" en el POS.
+                                        </div>
+                                    </div>
+
+                                    
+                                    <div class="col-12 mt-2">
+                                        <hr class="my-2">
+                                        <label class="form-label form-label-sm fw-semibold">
                                             <i class="bi bi-bluetooth me-1 text-primary"></i>Impresora Bluetooth (Puerto COM)
                                         </label>
                                         <div class="d-flex gap-2 align-items-center">

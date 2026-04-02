@@ -6,7 +6,8 @@
       "Bash(xargs grep:*)",
       "Bash(php -r \"echo iconv\\(''''UTF-8'''', ''''CP850//TRANSLIT//IGNORE'''', ''''Guaraníes Gs. 30.000 ¡Gracias!''''\\);\")",
       "Bash(xxd)",
-      "Bash(find c:/laragon/www/bodega-app/sdk -name *.aar -o -name woyou*.jar -o -name pos*.jar -o -name printer*.jar)"
+      "Bash(find c:/laragon/www/bodega-app/sdk -name *.aar -o -name woyou*.jar -o -name pos*.jar -o -name printer*.jar)",
+      "Bash(javap -classpath app/libs/posprinterconnectandsendsdk.jar net.posprinter.posprinterface.IMyBinder)"
     ]
   }
 }
