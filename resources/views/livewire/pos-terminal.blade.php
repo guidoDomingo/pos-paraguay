@@ -1177,31 +1177,49 @@
             window.open(url, '_blank');
         };
 
+        // ── QZ Tray: impresión RAW en Windows ──────────────────────────
+        window.printWithQZ = function(printerName, base64Data) {
+            // Permitir conexión sin certificado firmado (desarrollo/LAN)
+            qz.api.setTrustPromise(function() {
+                return new Promise(function(resolve) { resolve(); });
+            });
+            qz.security.setCertificatePromise(function(resolve) { resolve(''); });
+            qz.security.setSignatureAlgorithm('SHA512');
+            qz.security.setSignaturePromise(function() {
+                return function(resolve) { resolve(''); };
+            });
+
+            var connectPromise = qz.websocket.isActive()
+                ? Promise.resolve()
+                : qz.websocket.connect({ retries: 2, delay: 1 });
+
+            return connectPromise
+                .then(function() {
+                    var config = qz.configs.create(printerName);
+                    var data   = [{ type: 'raw', format: 'base64', data: base64Data }];
+                    return qz.print(config, data);
+                });
+        };
+
         window.directPrint = function(saleId, documentType) {
-            var printerType = '{{ $printerSettings->printer_type ?? 'thermal' }}';
-
-            // Modo PDF: abrir PDF y disparar diálogo de impresión del navegador
-            if (printerType === 'pdf') {
-                var pdfUrl = documentType === 'factura'
-                    ? '/pdf/invoice/' + saleId
-                    : '/pdf/ticket/' + saleId;
-                var printWin = window.open(pdfUrl, '_blank');
-                if (printWin) {
-                    printWin.onload = function() { printWin.focus(); printWin.print(); };
-                }
-                return;
-            }
-
-            // Modo térmica (ESC/POS)
-            var isAndroid = /android/i.test(navigator.userAgent);
+            var printerType  = '{{ $printerSettings->printer_type ?? 'thermal' }}';
+            var winPrinter   = '{{ $printerSettings->default_printer ?? '' }}';
             var rawbtUrl = documentType === 'factura'
                 ? '/print/rawbt/invoice/' + saleId
                 : '/print/rawbt/' + saleId;
-            var comUrl = documentType === 'factura'
-                ? '/print/bluetooth/invoice/' + saleId
-                : '/print/bluetooth/' + saleId;
+
+            // Modo PDF
+            if (printerType === 'pdf') {
+                var pdfUrl = documentType === 'factura' ? '/pdf/invoice/' + saleId : '/pdf/ticket/' + saleId;
+                var printWin = window.open(pdfUrl, '_blank');
+                if (printWin) { printWin.onload = function() { printWin.focus(); printWin.print(); }; }
+                return;
+            }
+
+            var isAndroid = /android/i.test(navigator.userAgent);
 
             if (isAndroid) {
+                // Android: PrintBridge en localhost:18000
                 showToast('Enviando a impresora...', 'info');
                 fetch(rawbtUrl, { headers: { 'Accept': 'application/json' } })
                     .then(function(r) { return r.json(); })
@@ -1215,27 +1233,27 @@
                     })
                     .then(function(r) { return r.json(); })
                     .then(function(result) {
-                        if (result.success) {
-                            showToast('Impreso correctamente', 'success');
-                        } else {
-                            showToast('Error: ' + (result.error || 'No se pudo imprimir'), 'error');
-                        }
+                        if (result.success) showToast('Impreso correctamente', 'success');
+                        else showToast('Error: ' + (result.error || 'No se pudo imprimir'), 'error');
                     })
                     .catch(function(e) { showToast('Error: ' + e.message + ' — ¿Está abierta la app PrintBridge?', 'error'); });
+
+            } else if (winPrinter) {
+                // Windows: QZ Tray
+                showToast('Enviando a impresora...', 'info');
+                fetch(rawbtUrl, { headers: { 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (!data.success) throw new Error(data.error || 'Error al generar documento');
+                        return window.printWithQZ(winPrinter, data.base64);
+                    })
+                    .then(function() { showToast('Impreso correctamente', 'success'); })
+                    .catch(function(e) {
+                        showToast('Error QZ Tray: ' + e.message + ' — ¿Está corriendo QZ Tray?', 'error');
+                    });
+
             } else {
-                fetch(comUrl, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        showToast('Enviado a impresora', 'success');
-                    } else {
-                        showToast('Error: ' + (data.error || 'No se pudo imprimir'), 'error');
-                    }
-                })
-                .catch(function(e) { showToast('Error: ' + e.message, 'error'); });
+                showToast('Configurá una impresora en Configuración → Facturación', 'warning');
             }
         };
 
