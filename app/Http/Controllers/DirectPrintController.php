@@ -181,7 +181,7 @@ class DirectPrintController extends Controller
 
             $content = $esc . '@';
             foreach ($lines as $line) {
-                $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', ' ' . $line) . $lf;
+                $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', '  ' . $line) . $lf;
             }
             $content .= $gs . 'V' . chr(1);
 
@@ -830,7 +830,7 @@ class DirectPrintController extends Controller
 
         $content = $esc . '@';
         foreach ($lines as $line) {
-            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', ' ' . $line) . $lf;
+            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', '  ' . $line) . $lf;
         }
         $content .= $gs . 'V' . chr(1);
 
@@ -942,7 +942,7 @@ class DirectPrintController extends Controller
 
         $content = $esc . '@';
         foreach ($lines as $line) {
-            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', ' ' . $line) . $lf;
+            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', '  ' . $line) . $lf;
         }
         $content .= $gs . 'V' . chr(1);
 
