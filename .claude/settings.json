@@ -8,7 +8,8 @@
       "Bash(xxd)",
       "Bash(find c:/laragon/www/bodega-app/sdk -name *.aar -o -name woyou*.jar -o -name pos*.jar -o -name printer*.jar)",
       "Bash(javap -classpath app/libs/posprinterconnectandsendsdk.jar net.posprinter.posprinterface.IMyBinder)",
-      "Bash(php -r \"require 'vendor/autoload.php'; echo 'OK';\")"
+      "Bash(php -r \"require 'vendor/autoload.php'; echo 'OK';\")",
+      "Bash(grep -n \"\\\\\\\\\\\\\\\\Log::\" c:/laragon/www/bodega-app/app/Http/Controllers/DirectPrintController.php)"
     ]
   }
 }

@@ -346,7 +346,7 @@ class DirectPrintController extends Controller
                 ->header('X-Print-Direct', 'true');
                 
         } catch (\Exception $e) {
-            \Log::error('Error en DirectPrintController::printTicketESCPOS', [
+            Log::error('Error en DirectPrintController::printTicketESCPOS', [
                 'saleId' => $saleId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -791,71 +791,47 @@ class DirectPrintController extends Controller
         $lf  = chr(10);
         $W   = 32;
 
-        $alignLeft   = $esc . 'a' . chr(0);
-        $alignCenter = $esc . 'a' . chr(1);
-        $boldOn      = $esc . 'E' . chr(1);
-        $boldOff     = $esc . 'E' . chr(0);
+        $lines = [];
+        $lines[] = $this->pad(strtoupper($settings->company_name ?? 'MI EMPRESA'), $W, 'center');
+        if ($settings->company_ruc)     $lines[] = $this->pad('RUC: ' . $settings->company_ruc, $W, 'center');
+        if ($settings->company_address) $lines[] = $this->pad($settings->company_address, $W, 'center');
+        if ($settings->company_phone)   $lines[] = $this->pad('Tel: ' . $settings->company_phone, $W, 'center');
+        $lines[] = str_repeat('-', $W);
+        $lines[] = $this->pad('TICKET DE VENTA', $W, 'center');
+        $lines[] = str_repeat('-', $W);
+        $lines[] = 'Nro   : ' . $sale->sale_number;
+        $lines[] = 'Fecha : ' . $sale->sale_date->format('d/m/Y H:i');
+        $lines[] = 'Cajero: ' . mb_substr($sale->user->name ?? 'Admin', 0, $W - 8);
+        $lines[] = str_repeat('.', $W);
 
-        $content = $esc . '@';
-
-        // Cabecera empresa
-        $content .= $alignCenter;
-        $content .= $boldOn;
-        $content .= $this->enc(strtoupper($settings->company_name ?? 'MI EMPRESA')) . $lf;
-        $content .= $boldOff;
-        if ($settings->company_ruc) {
-            $content .= $this->enc('RUC: ' . $settings->company_ruc) . $lf;
-        }
-        if ($settings->company_address) {
-            $content .= $this->enc($settings->company_address) . $lf;
-        }
-        if ($settings->company_phone) {
-            $content .= $this->enc('Tel: ' . $settings->company_phone) . $lf;
-        }
-
-        $content .= $this->enc(str_repeat('-', $W)) . $lf;
-        $content .= $boldOn;
-        $content .= $this->enc('TICKET DE VENTA') . $lf;
-        $content .= $boldOff;
-        $content .= $this->enc(str_repeat('-', $W)) . $lf;
-
-        $content .= $alignLeft;
-        $content .= $this->enc('Nro   : ' . $sale->sale_number) . $lf;
-        $content .= $this->enc('Fecha : ' . $sale->sale_date->format('d/m/Y H:i')) . $lf;
-        $content .= $this->enc('Cajero: ' . mb_substr($sale->user->name ?? 'Admin', 0, $W - 8)) . $lf;
-        $content .= $this->enc(str_repeat('.', $W)) . $lf;
-
-        // Productos
         foreach ($sale->saleItems as $item) {
-            $content .= $this->enc(mb_substr($item->product_name, 0, $W)) . $lf;
+            $lines[] = mb_substr($item->product_name, 0, $W);
             $left  = number_format($item->quantity, 0) . ' x Gs.' . number_format($item->unit_price, 0);
             $right = 'Gs.' . number_format($item->total_price, 0);
-            $content .= $this->enc($this->pad2col($left, $right, $W)) . $lf;
+            $lines[] = $this->pad2col($left, $right, $W);
         }
 
-        $content .= $this->enc(str_repeat('-', $W)) . $lf;
-
-        // Totales
-        $content .= $this->enc($this->pad2col('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W)) . $lf;
-        $content .= $this->enc($this->pad2col('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W)) . $lf;
-        $content .= $this->enc(str_repeat('-', $W)) . $lf;
-        $content .= $boldOn;
-        $content .= $this->enc($this->pad2col('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W)) . $lf;
-        $content .= $boldOff;
-        $content .= $this->enc(str_repeat('=', $W)) . $lf;
-
-        // Pago
-        $content .= $this->enc($this->pad2col('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W)) . $lf;
-        $content .= $this->enc($this->pad2col('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W)) . $lf;
+        $lines[] = str_repeat('-', $W);
+        $lines[] = $this->pad2col('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W);
+        $lines[] = $this->pad2col('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W);
+        $lines[] = str_repeat('-', $W);
+        $lines[] = $this->pad2col('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W);
+        $lines[] = str_repeat('=', $W);
+        $lines[] = $this->pad2col('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W);
+        $lines[] = $this->pad2col('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W);
         if ($sale->change_amount > 0) {
-            $content .= $this->enc($this->pad2col('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W)) . $lf;
+            $lines[] = $this->pad2col('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W);
         }
+        $lines[] = str_repeat('.', $W);
+        $lines[] = $this->pad('Gracias por su compra!', $W, 'center');
+        $lines[] = '';
+        $lines[] = '';
+        $lines[] = '';
 
-        $content .= $this->enc(str_repeat('.', $W)) . $lf;
-        $content .= $alignCenter;
-        $content .= $this->enc('Gracias por su compra!') . $lf;
-        $content .= $lf . $lf . $lf;
-
+        $content = $esc . '@';
+        foreach ($lines as $line) {
+            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $line) . $lf;
+        }
         $content .= $gs . 'V' . chr(1);
 
         return $content;
@@ -864,148 +840,113 @@ class DirectPrintController extends Controller
     private function generateInvoiceESCPOS($sale)
     {
         $settings = InvoiceSetting::getSettings();
-        $invoice  = $sale->invoice; // puede ser null si no tiene timbrado
+        $invoice  = $sale->invoice;
 
         $esc = chr(27);
         $gs  = chr(29);
         $lf  = chr(10);
         $W   = 32;
 
-        // Comandos ESC/POS
-        $alignLeft   = $esc . 'a' . chr(0);
-        $alignCenter = $esc . 'a' . chr(1);
-        $alignRight  = $esc . 'a' . chr(2);
-        $boldOn      = $esc . 'E' . chr(1);
-        $boldOff     = $esc . 'E' . chr(0);
+        $lines = [];
 
-        $content = $esc . '@'; // inicializar
+        // Cabecera empresa
+        $lines[] = $this->pad(strtoupper($settings->company_name ?? 'MI EMPRESA'), $W, 'center');
+        if ($settings->company_ruc)     $lines[] = $this->pad('RUC: ' . $settings->company_ruc, $W, 'center');
+        if ($settings->company_address) $lines[] = $this->pad($settings->company_address, $W, 'center');
+        if ($settings->company_phone)   $lines[] = $this->pad('Tel: ' . $settings->company_phone, $W, 'center');
+        $lines[] = str_repeat('-', $W);
 
-        // ── Cabecera empresa (centrado con ESC/POS) ──
-        $content .= $alignCenter;
-        $content .= $boldOn;
-        $content .= $this->enc(strtoupper($settings->company_name ?? 'MI EMPRESA')) . $lf;
-        $content .= $boldOff;
-        if ($settings->company_ruc) {
-            $content .= $this->enc('RUC: ' . $settings->company_ruc) . $lf;
-        }
-        if ($settings->company_address) {
-            $content .= $this->enc($settings->company_address) . $lf;
-        }
-        if ($settings->company_phone) {
-            $content .= $this->enc('Tel: ' . $settings->company_phone) . $lf;
-        }
-        $content .= $this->enc(str_repeat('-', $W)) . $lf;
-
-        // ── Datos del timbrado ──
+        // Timbrado
         if ($invoice) {
-            $content .= $this->enc('Timbrado N: ' . $invoice->stamp_number) . $lf;
+            $lines[] = $this->pad('Timbrado: ' . $invoice->stamp_number, $W, 'center');
             $fiscalStamp = $invoice->fiscalStamp ?? null;
             if ($fiscalStamp) {
-                $content .= $this->enc('Vigencia: ' . \Carbon\Carbon::parse($fiscalStamp->valid_from)->format('d/m/Y')
-                    . ' al ' . \Carbon\Carbon::parse($fiscalStamp->valid_until)->format('d/m/Y')) . $lf;
+                $lines[] = $this->pad(
+                    \Carbon\Carbon::parse($fiscalStamp->valid_from)->format('d/m/Y')
+                    . ' al '
+                    . \Carbon\Carbon::parse($fiscalStamp->valid_until)->format('d/m/Y'),
+                    $W, 'center'
+                );
             }
         }
 
-        $content .= $boldOn;
-        $content .= $this->enc('FACTURA') . $lf;
-        $content .= $boldOff;
+        $lines[] = $this->pad('FACTURA', $W, 'center');
+        if ($invoice) $lines[] = $this->pad($invoice->invoice_number, $W, 'center');
+        $lines[] = str_repeat('-', $W);
 
-        // Número de factura
-        if ($invoice) {
-            $content .= $this->enc($invoice->invoice_number) . $lf;
-        }
+        $lines[] = 'Fecha : ' . $sale->sale_date->format('d/m/Y H:i');
+        $lines[] = 'Cond  : ' . ($sale->sale_condition ?? 'CONTADO');
+        $lines[] = 'Cajero: ' . mb_substr($sale->user->name ?? 'Admin', 0, $W - 8);
 
-        $content .= $alignLeft;
-        $content .= $this->enc(str_repeat('-', $W)) . $lf;
-
-        // ── Datos del documento ──
-        $content .= $this->enc('Fecha : ' . $sale->sale_date->format('d/m/Y H:i')) . $lf;
-        $content .= $this->enc('Cond  : ' . ($sale->sale_condition ?? 'CONTADO')) . $lf;
-        $content .= $this->enc('Cajero: ' . mb_substr($sale->user->name ?? 'Admin', 0, $W - 8)) . $lf;
-
-        // ── Datos del cliente ──
+        // Datos del cliente
         $clientName    = $invoice->customer_name    ?? $sale->customer_name    ?? ($sale->customer->name    ?? '');
         $clientRuc     = $invoice->customer_ruc     ?? $sale->customer_ruc     ?? ($sale->customer->ruc     ?? '');
         $clientAddress = $invoice->customer_address ?? $sale->customer_address ?? ($sale->customer->address ?? '');
         $clientPhone   = $sale->customer->phone ?? '';
 
         if ($clientName) {
-            $content .= $this->enc(str_repeat('.', $W)) . $lf;
-            $content .= $this->enc('Cliente: ' . mb_substr($clientName, 0, $W - 9)) . $lf;
-            if ($clientRuc)     $content .= $this->enc('RUC    : ' . $clientRuc) . $lf;
-            if ($clientAddress) $content .= $this->enc('Dir    : ' . mb_substr($clientAddress, 0, $W - 8)) . $lf;
-            if ($clientPhone)   $content .= $this->enc('Tel    : ' . $clientPhone) . $lf;
+            $lines[] = str_repeat('.', $W);
+            $lines[] = 'Cliente: ' . mb_substr($clientName, 0, $W - 9);
+            if ($clientRuc)     $lines[] = 'RUC    : ' . $clientRuc;
+            if ($clientAddress) $lines[] = 'Dir    : ' . mb_substr($clientAddress, 0, $W - 8);
+            if ($clientPhone)   $lines[] = 'Tel    : ' . $clientPhone;
         }
 
-        $content .= $this->enc(str_repeat('-', $W)) . $lf;
+        $lines[] = str_repeat('-', $W);
+        $lines[] = $this->pad2col('DESCRIPCION', 'TOTAL', $W);
+        $lines[] = str_repeat('.', $W);
 
-        // ── Encabezado columnas ──
-        $content .= $this->enc($this->pad2col('DESCRIPCION', 'TOTAL', $W)) . $lf;
-        $content .= $this->enc(str_repeat('.', $W)) . $lf;
-
-        // ── Productos ──
         foreach ($sale->saleItems as $item) {
-            $content .= $this->enc(mb_substr($item->product_name, 0, $W)) . $lf;
+            $lines[] = mb_substr($item->product_name, 0, $W);
             $left  = number_format($item->quantity, 0) . ' x Gs.' . number_format($item->unit_price, 0);
             $right = 'Gs.' . number_format($item->total_price, 0);
-            $content .= $this->enc($this->pad2col($left, $right, $W)) . $lf;
+            $lines[] = $this->pad2col($left, $right, $W);
         }
 
-        $content .= $this->enc(str_repeat('-', $W)) . $lf;
+        $lines[] = str_repeat('-', $W);
 
-        // ── Totales por IVA ──
         if ($invoice && ($invoice->subtotal_exento > 0 || $invoice->subtotal_iva_5 > 0)) {
-            if ($invoice->subtotal_exento > 0) {
-                $content .= $this->enc($this->pad2col('Exentas:', 'Gs.' . number_format($invoice->subtotal_exento, 0), $W)) . $lf;
-            }
-            if ($invoice->subtotal_iva_5 > 0) {
-                $content .= $this->enc($this->pad2col('IVA 5%:', 'Gs.' . number_format($invoice->subtotal_iva_5, 0), $W)) . $lf;
-            }
-            if ($invoice->subtotal_iva_10 > 0) {
-                $content .= $this->enc($this->pad2col('IVA 10%:', 'Gs.' . number_format($invoice->subtotal_iva_10, 0), $W)) . $lf;
-            }
-            $content .= $this->enc(str_repeat('-', $W)) . $lf;
+            if ($invoice->subtotal_exento > 0)
+                $lines[] = $this->pad2col('Exentas:', 'Gs.' . number_format($invoice->subtotal_exento, 0), $W);
+            if ($invoice->subtotal_iva_5 > 0)
+                $lines[] = $this->pad2col('Grav. 5%:', 'Gs.' . number_format($invoice->subtotal_iva_5, 0), $W);
+            if ($invoice->subtotal_iva_10 > 0)
+                $lines[] = $this->pad2col('Grav. 10%:', 'Gs.' . number_format($invoice->subtotal_iva_10, 0), $W);
+            $lines[] = str_repeat('-', $W);
         } else {
-            $content .= $this->enc($this->pad2col('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W)) . $lf;
-            $content .= $this->enc($this->pad2col('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W)) . $lf;
-            $content .= $this->enc(str_repeat('-', $W)) . $lf;
+            $lines[] = $this->pad2col('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W);
+            $lines[] = $this->pad2col('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W);
+            $lines[] = str_repeat('-', $W);
         }
 
-        $content .= $boldOn;
-        $content .= $this->enc($this->pad2col('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W)) . $lf;
-        $content .= $boldOff;
-        $content .= $this->enc(str_repeat('=', $W)) . $lf;
-
-        // ── Pago ──
-        $content .= $this->enc($this->pad2col('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W)) . $lf;
-        $content .= $this->enc($this->pad2col('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W)) . $lf;
+        $lines[] = $this->pad2col('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W);
+        $lines[] = str_repeat('=', $W);
+        $lines[] = $this->pad2col('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W);
+        $lines[] = $this->pad2col('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W);
         if ($sale->change_amount > 0) {
-            $content .= $this->enc($this->pad2col('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W)) . $lf;
+            $lines[] = $this->pad2col('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W);
         }
 
-        // ── Liquidación IVA ──
-        if ($invoice) {
-            $content .= $this->enc(str_repeat('.', $W)) . $lf;
-            $liq5  = $invoice->total_iva_5  > 0 ? 'IVA 5%: Gs.' . number_format($invoice->total_iva_5, 0) : '';
-            $liq10 = $invoice->total_iva_10 > 0 ? 'IVA 10%: Gs.' . number_format($invoice->total_iva_10, 0) : '';
-            if ($liq5)  $content .= $this->enc($liq5) . $lf;
-            if ($liq10) $content .= $this->enc($liq10) . $lf;
-            $content .= $this->enc('Total IVA: Gs.' . number_format($invoice->total_iva, 0)) . $lf;
+        if ($invoice && $invoice->total_iva > 0) {
+            $lines[] = str_repeat('.', $W);
+            if ($invoice->total_iva_5  > 0) $lines[] = 'Liq. IVA 5% : Gs.' . number_format($invoice->total_iva_5, 0);
+            if ($invoice->total_iva_10 > 0) $lines[] = 'Liq. IVA 10%: Gs.' . number_format($invoice->total_iva_10, 0);
+            $lines[] = 'Total IVA   : Gs.' . number_format($invoice->total_iva, 0);
         }
 
-        $content .= $this->enc(str_repeat('.', $W)) . $lf;
-        $content .= $alignCenter;
-        $content .= $this->enc('Gracias por su compra!') . $lf;
-        $content .= $lf . $lf . $lf;
+        $lines[] = str_repeat('.', $W);
+        $lines[] = $this->pad('Gracias por su compra!', $W, 'center');
+        $lines[] = '';
+        $lines[] = '';
+        $lines[] = '';
 
-        $content .= $gs . 'V' . chr(1); // corte parcial
+        $content = $esc . '@';
+        foreach ($lines as $line) {
+            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $line) . $lf;
+        }
+        $content .= $gs . 'V' . chr(1);
 
         return $content;
-    }
-
-    private function enc(string $text): string
-    {
-        return iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $text);
     }
 
     private function pad(string $text, int $width, string $align = 'left'): string
