@@ -36,6 +36,8 @@ class InvoiceSetting extends Model
         'auto_print_tickets',
         'auto_print_invoices',
         'printer_type',
+        'printer_left_margin',
+        'printer_width',
     ];
 
     protected $casts = [

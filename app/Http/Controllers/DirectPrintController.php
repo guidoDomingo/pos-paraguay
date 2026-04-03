@@ -159,10 +159,11 @@ class DirectPrintController extends Controller
                 ], 422);
             }
 
-            $esc = chr(27);
-            $gs  = chr(29);
-            $lf  = chr(10);
-            $W   = 32;
+            $esc    = chr(27);
+            $gs     = chr(29);
+            $lf     = chr(10);
+            $W      = (int)($settings->printer_width ?? 32);
+            $margin = str_repeat(' ', (int)($settings->printer_left_margin ?? 4));
 
             $lines = [
                 $this->pad(strtoupper($settings->company_name ?: 'MI EMPRESA'), $W, 'center'),
@@ -181,7 +182,7 @@ class DirectPrintController extends Controller
 
             $content = $esc . '@';
             foreach ($lines as $line) {
-                $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', '  ' . $line) . $lf;
+                $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $margin . $line) . $lf;
             }
             $content .= $gs . 'V' . chr(1);
 
@@ -786,10 +787,11 @@ class DirectPrintController extends Controller
     {
         $settings = InvoiceSetting::getSettings();
 
-        $esc = chr(27);
-        $gs  = chr(29);
-        $lf  = chr(10);
-        $W   = 32;
+        $esc    = chr(27);
+        $gs     = chr(29);
+        $lf     = chr(10);
+        $W      = (int)($settings->printer_width ?? 32);
+        $margin = str_repeat(' ', (int)($settings->printer_left_margin ?? 4));
 
         $lines = [];
         $lines[] = $this->pad(strtoupper($settings->company_name ?? 'MI EMPRESA'), $W, 'center');
@@ -830,7 +832,7 @@ class DirectPrintController extends Controller
 
         $content = $esc . '@';
         foreach ($lines as $line) {
-            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', '  ' . $line) . $lf;
+            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $margin . $line) . $lf;
         }
         $content .= $gs . 'V' . chr(1);
 
@@ -842,10 +844,11 @@ class DirectPrintController extends Controller
         $settings = InvoiceSetting::getSettings();
         $invoice  = $sale->invoice;
 
-        $esc = chr(27);
-        $gs  = chr(29);
-        $lf  = chr(10);
-        $W   = 32;
+        $esc    = chr(27);
+        $gs     = chr(29);
+        $lf     = chr(10);
+        $W      = (int)($settings->printer_width ?? 32);
+        $margin = str_repeat(' ', (int)($settings->printer_left_margin ?? 4));
 
         $lines = [];
 
@@ -942,7 +945,7 @@ class DirectPrintController extends Controller
 
         $content = $esc . '@';
         foreach ($lines as $line) {
-            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', '  ' . $line) . $lf;
+            $content .= iconv('UTF-8', 'CP850//TRANSLIT//IGNORE', $margin . $line) . $lf;
         }
         $content .= $gs . 'V' . chr(1);
 

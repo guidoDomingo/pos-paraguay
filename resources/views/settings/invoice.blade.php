@@ -220,6 +220,22 @@
                                         </div>
                                     </div>
 
+                                    {{-- Ajuste de impresora térmica --}}
+                                    <div class="col-6">
+                                        <label class="form-label form-label-sm fw-semibold">Margen izquierdo (espacios)</label>
+                                        <input type="number" name="printer_left_margin" class="form-control form-control-sm"
+                                            value="{{ old('printer_left_margin', $settings->printer_left_margin ?? 4) }}"
+                                            min="0" max="10" step="1">
+                                        <div class="form-text text-muted">Ajustá si el texto queda cortado o muy pegado al borde.</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label form-label-sm fw-semibold">Ancho papel (caracteres)</label>
+                                        <input type="number" name="printer_width" class="form-control form-control-sm"
+                                            value="{{ old('printer_width', $settings->printer_width ?? 32) }}"
+                                            min="24" max="48" step="1">
+                                        <div class="form-text text-muted">32 = 58mm · 42 = 80mm</div>
+                                    </div>
+
                                     {{-- Impresora Bluetooth / Puerto COM --}}
                                     <div class="col-12 mt-2">
                                         <hr class="my-2">
