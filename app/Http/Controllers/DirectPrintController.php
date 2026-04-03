@@ -159,11 +159,12 @@ class DirectPrintController extends Controller
                 ], 422);
             }
 
-            $esc    = chr(27);
-            $gs     = chr(29);
-            $lf     = chr(10);
-            $W      = (int)($settings->printer_width ?? 32);
-            $margin = str_repeat(' ', (int)($settings->printer_left_margin ?? 4));
+            $esc       = chr(27);
+            $gs        = chr(29);
+            $lf        = chr(10);
+            $marginLen = (int)($settings->printer_left_margin ?? 4);
+            $W         = (int)($settings->printer_width ?? 32) - $marginLen;
+            $margin    = str_repeat(' ', $marginLen);
 
             $lines = [
                 $this->pad(strtoupper($settings->company_name ?: 'MI EMPRESA'), $W, 'center'),
@@ -790,39 +791,40 @@ class DirectPrintController extends Controller
         $esc    = chr(27);
         $gs     = chr(29);
         $lf     = chr(10);
-        $W      = (int)($settings->printer_width ?? 32);
-        $margin = str_repeat(' ', (int)($settings->printer_left_margin ?? 4));
+        $marginLen = (int)($settings->printer_left_margin ?? 4);
+        $W         = (int)($settings->printer_width ?? 32) - $marginLen;
+        $margin    = str_repeat(' ', $marginLen);
 
         $lines = [];
-        $lines[] = $this->pad(strtoupper($settings->company_name ?? 'MI EMPRESA'), $W, 'center');
-        if ($settings->company_ruc)     $lines[] = $this->pad('RUC: ' . $settings->company_ruc, $W, 'center');
-        if ($settings->company_address) $lines[] = $this->pad($settings->company_address, $W, 'center');
+        array_push($lines, ...$this->wrapLines($this->pad(strtoupper($settings->company_name ?? 'MI EMPRESA'), $W, 'center'), $W));
+        if ($settings->company_ruc)     array_push($lines, ...$this->wrapLines($this->pad('RUC: ' . $settings->company_ruc, $W, 'center'), $W));
+        if ($settings->company_address) array_push($lines, ...$this->wrapLines($this->pad($settings->company_address, $W, 'center'), $W));
         if ($settings->company_phone)   $lines[] = $this->pad('Tel: ' . $settings->company_phone, $W, 'center');
         $lines[] = str_repeat('-', $W);
         $lines[] = $this->pad('TICKET DE VENTA', $W, 'center');
         $lines[] = str_repeat('-', $W);
         $lines[] = 'Nro   : ' . $sale->sale_number;
         $lines[] = 'Fecha : ' . $sale->sale_date->format('d/m/Y H:i');
-        $lines[] = 'Cajero: ' . mb_substr($sale->user->name ?? 'Admin', 0, $W - 8);
+        array_push($lines, ...$this->wrapLines('Cajero: ' . ($sale->user->name ?? 'Admin'), $W, '        '));
         $lines[] = str_repeat('.', $W);
 
         foreach ($sale->saleItems as $item) {
-            $lines[] = mb_substr($item->product_name, 0, $W);
+            array_push($lines, ...$this->wrapLines($item->product_name, $W));
             $left  = number_format($item->quantity, 0) . ' x Gs.' . number_format($item->unit_price, 0);
             $right = 'Gs.' . number_format($item->total_price, 0);
-            $lines[] = $this->pad2col($left, $right, $W);
+            array_push($lines, ...$this->pad2colWrap($left, $right, $W));
         }
 
         $lines[] = str_repeat('-', $W);
-        $lines[] = $this->pad2col('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W);
-        $lines[] = $this->pad2col('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W);
+        array_push($lines, ...$this->pad2colWrap('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W));
+        array_push($lines, ...$this->pad2colWrap('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W));
         $lines[] = str_repeat('-', $W);
-        $lines[] = $this->pad2col('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W);
+        array_push($lines, ...$this->pad2colWrap('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W));
         $lines[] = str_repeat('=', $W);
-        $lines[] = $this->pad2col('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W);
-        $lines[] = $this->pad2col('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W);
+        array_push($lines, ...$this->pad2colWrap('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W));
+        array_push($lines, ...$this->pad2colWrap('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W));
         if ($sale->change_amount > 0) {
-            $lines[] = $this->pad2col('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W);
+            array_push($lines, ...$this->pad2colWrap('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W));
         }
         $lines[] = str_repeat('.', $W);
         $lines[] = $this->pad('Gracias por su compra!', $W, 'center');
@@ -847,16 +849,17 @@ class DirectPrintController extends Controller
         $esc    = chr(27);
         $gs     = chr(29);
         $lf     = chr(10);
-        $W      = (int)($settings->printer_width ?? 32);
-        $margin = str_repeat(' ', (int)($settings->printer_left_margin ?? 4));
+        $marginLen = (int)($settings->printer_left_margin ?? 4);
+        $W         = (int)($settings->printer_width ?? 32) - $marginLen;
+        $margin    = str_repeat(' ', $marginLen);
 
         $lines = [];
 
         // Cabecera empresa
-        $lines[] = $this->pad(strtoupper($settings->company_name ?? 'MI EMPRESA'), $W, 'center');
-        if ($settings->company_ruc)     $lines[] = $this->pad('RUC: ' . $settings->company_ruc, $W, 'center');
-        if ($settings->company_address) $lines[] = $this->pad($settings->company_address, $W, 'center');
-        if ($settings->company_phone)   $lines[] = $this->pad('Tel: ' . $settings->company_phone, $W, 'center');
+        array_push($lines, ...$this->wrapLines($this->pad(strtoupper($settings->company_name ?? 'MI EMPRESA'), $W, 'center'), $W));
+        if ($settings->company_ruc)     array_push($lines, ...$this->wrapLines($this->pad('RUC: ' . $settings->company_ruc, $W, 'center'), $W));
+        if ($settings->company_address) array_push($lines, ...$this->wrapLines($settings->company_address, $W));
+        if ($settings->company_phone)   $lines[] = 'Tel: ' . $settings->company_phone;
         $lines[] = str_repeat('-', $W);
 
         // Timbrado
@@ -879,7 +882,7 @@ class DirectPrintController extends Controller
 
         $lines[] = 'Fecha : ' . $sale->sale_date->format('d/m/Y H:i');
         $lines[] = 'Cond  : ' . ($sale->sale_condition ?? 'CONTADO');
-        $lines[] = 'Cajero: ' . mb_substr($sale->user->name ?? 'Admin', 0, $W - 8);
+        array_push($lines, ...$this->wrapLines('Cajero: ' . ($sale->user->name ?? 'Admin'), $W, '        '));
 
         // Datos del cliente
         $clientName    = $invoice->customer_name    ?? $sale->customer_name    ?? ($sale->customer->name    ?? '');
@@ -889,9 +892,9 @@ class DirectPrintController extends Controller
 
         if ($clientName) {
             $lines[] = str_repeat('.', $W);
-            $lines[] = 'Cliente: ' . mb_substr($clientName, 0, $W - 9);
-            if ($clientRuc)     $lines[] = 'RUC    : ' . $clientRuc;
-            if ($clientAddress) $lines[] = 'Dir    : ' . mb_substr($clientAddress, 0, $W - 8);
+            array_push($lines, ...$this->wrapLines('Cliente: ' . $clientName, $W, '         '));
+            if ($clientRuc)     array_push($lines, ...$this->wrapLines('RUC    : ' . $clientRuc, $W, '         '));
+            if ($clientAddress) array_push($lines, ...$this->wrapLines('Dir    : ' . $clientAddress, $W, '         '));
             if ($clientPhone)   $lines[] = 'Tel    : ' . $clientPhone;
         }
 
@@ -900,41 +903,41 @@ class DirectPrintController extends Controller
         $lines[] = str_repeat('.', $W);
 
         foreach ($sale->saleItems as $item) {
-            $lines[] = mb_substr($item->product_name, 0, $W);
+            array_push($lines, ...$this->wrapLines($item->product_name, $W));
             $left  = number_format($item->quantity, 0) . ' x Gs.' . number_format($item->unit_price, 0);
             $right = 'Gs.' . number_format($item->total_price, 0);
-            $lines[] = $this->pad2col($left, $right, $W);
+            array_push($lines, ...$this->pad2colWrap($left, $right, $W));
         }
 
         $lines[] = str_repeat('-', $W);
 
         if ($invoice && ($invoice->subtotal_exento > 0 || $invoice->subtotal_iva_5 > 0)) {
             if ($invoice->subtotal_exento > 0)
-                $lines[] = $this->pad2col('Exentas:', 'Gs.' . number_format($invoice->subtotal_exento, 0), $W);
+                array_push($lines, ...$this->pad2colWrap('Exentas:', 'Gs.' . number_format($invoice->subtotal_exento, 0), $W));
             if ($invoice->subtotal_iva_5 > 0)
-                $lines[] = $this->pad2col('Grav. 5%:', 'Gs.' . number_format($invoice->subtotal_iva_5, 0), $W);
+                array_push($lines, ...$this->pad2colWrap('Grav. 5%:', 'Gs.' . number_format($invoice->subtotal_iva_5, 0), $W));
             if ($invoice->subtotal_iva_10 > 0)
-                $lines[] = $this->pad2col('Grav. 10%:', 'Gs.' . number_format($invoice->subtotal_iva_10, 0), $W);
+                array_push($lines, ...$this->pad2colWrap('Grav. 10%:', 'Gs.' . number_format($invoice->subtotal_iva_10, 0), $W));
             $lines[] = str_repeat('-', $W);
         } else {
-            $lines[] = $this->pad2col('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W);
-            $lines[] = $this->pad2col('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W);
+            array_push($lines, ...$this->pad2colWrap('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W));
+            array_push($lines, ...$this->pad2colWrap('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W));
             $lines[] = str_repeat('-', $W);
         }
 
-        $lines[] = $this->pad2col('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W);
+        array_push($lines, ...$this->pad2colWrap('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W));
         $lines[] = str_repeat('=', $W);
-        $lines[] = $this->pad2col('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W);
-        $lines[] = $this->pad2col('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W);
+        array_push($lines, ...$this->pad2colWrap('Metodo:', $this->getPaymentMethodName($sale->payment_method), $W));
+        array_push($lines, ...$this->pad2colWrap('Recibido:', 'Gs.' . number_format($sale->amount_paid, 0), $W));
         if ($sale->change_amount > 0) {
-            $lines[] = $this->pad2col('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W);
+            array_push($lines, ...$this->pad2colWrap('Cambio:', 'Gs.' . number_format($sale->change_amount, 0), $W));
         }
 
         if ($invoice && $invoice->total_iva > 0) {
             $lines[] = str_repeat('.', $W);
-            if ($invoice->total_iva_5  > 0) $lines[] = 'Liq. IVA 5% : Gs.' . number_format($invoice->total_iva_5, 0);
-            if ($invoice->total_iva_10 > 0) $lines[] = 'Liq. IVA 10%: Gs.' . number_format($invoice->total_iva_10, 0);
-            $lines[] = 'Total IVA   : Gs.' . number_format($invoice->total_iva, 0);
+            if ($invoice->total_iva_5  > 0) array_push($lines, ...$this->pad2colWrap('Liq. IVA 5%:', 'Gs.' . number_format($invoice->total_iva_5, 0), $W));
+            if ($invoice->total_iva_10 > 0) array_push($lines, ...$this->pad2colWrap('Liq. IVA 10%:', 'Gs.' . number_format($invoice->total_iva_10, 0), $W));
+            array_push($lines, ...$this->pad2colWrap('Total IVA:', 'Gs.' . number_format($invoice->total_iva, 0), $W));
         }
 
         $lines[] = str_repeat('.', $W);
@@ -950,6 +953,49 @@ class DirectPrintController extends Controller
         $content .= $gs . 'V' . chr(1);
 
         return $content;
+    }
+
+    /**
+     * Divide un texto largo en múltiples líneas que caben en $width caracteres.
+     * Las líneas de continuación llevan $indent de sangría.
+     */
+    private function wrapLines(string $text, int $width, string $indent = '  '): array
+    {
+        if (mb_strlen($text) <= $width) {
+            return [$text];
+        }
+        $words  = explode(' ', $text);
+        $lines  = [];
+        $current = '';
+        $first  = true;
+        foreach ($words as $word) {
+            $maxW = $first ? $width : ($width - mb_strlen($indent));
+            $test = $current === '' ? $word : $current . ' ' . $word;
+            if (mb_strlen($test) <= $maxW) {
+                $current = $test;
+            } else {
+                if ($current !== '') {
+                    $lines[] = $first ? $current : $indent . $current;
+                    $first = false;
+                }
+                $current = $word;
+            }
+        }
+        if ($current !== '') {
+            $lines[] = $first ? $current : $indent . $current;
+        }
+        return $lines ?: [$text];
+    }
+
+    /**
+     * Dos columnas. Si no caben en una línea, el valor derecho va en la siguiente.
+     */
+    private function pad2colWrap(string $left, string $right, int $width): array
+    {
+        if (mb_strlen($left) + 1 + mb_strlen($right) <= $width) {
+            return [$this->pad2col($left, $right, $width)];
+        }
+        return [$left, $this->pad($right, $width, 'right')];
     }
 
     private function pad(string $text, int $width, string $align = 'left'): string
