@@ -91,25 +91,16 @@ class DirectPrintController extends Controller
             }
 
             $settings = InvoiceSetting::getSettings();
-            $comPort  = $settings->ticket_printer ?? null;
-
-            if (!$comPort) {
-                return response()->json([
-                    'success' => false,
-                    'error'   => 'No hay puerto COM configurado. Configurá la impresora en Configuración → Facturación.',
-                ], 422);
-            }
-
-            $escPos = $this->generateInvoiceESCPOS($sale);
-            $result = $this->sendToComPort($comPort, $escPos);
+            $escPos   = $this->generateInvoiceESCPOS($sale);
+            $result   = $this->sendEscPosToConfiguredPrinter($escPos, $settings);
 
             if (!$result['success']) {
-                return response()->json(['success' => false, 'error' => $result['error']], 500);
+                return response()->json(['success' => false, 'error' => $result['error']], 422);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => "Factura enviada a $comPort",
+                'message' => 'Factura enviada a impresora',
                 'sale'    => $sale->sale_number,
             ]);
 
@@ -149,13 +140,15 @@ class DirectPrintController extends Controller
     public function printTest()
     {
         try {
-            $settings = InvoiceSetting::getSettings();
-            $comPort  = $settings->ticket_printer ?? null;
+            $settings  = InvoiceSetting::getSettings();
+            $winPrinter = $settings->default_printer ?? null;
+            $comPort    = $settings->ticket_printer   ?? null;
+            $printerLabel = $winPrinter ?: $comPort ?: '—';
 
-            if (!$comPort) {
+            if (!$winPrinter && !$comPort) {
                 return response()->json([
                     'success' => false,
-                    'error'   => 'No hay puerto COM configurado. Guardá la configuración primero.',
+                    'error'   => 'No hay impresora configurada. Guardá la configuración primero.',
                 ], 422);
             }
 
@@ -171,8 +164,7 @@ class DirectPrintController extends Controller
                 str_repeat('-', $W),
                 $this->pad('*** IMPRESION DE PRUEBA ***', $W, 'center'),
                 str_repeat('-', $W),
-                'Puerto    : ' . $comPort,
-                'Impresora : 3nStar PPT305BT',
+                'Impresora : ' . $printerLabel,
                 'Fecha     : ' . date('d/m/Y H:i:s'),
                 str_repeat('-', $W),
                 $this->pad('La impresora funciona OK!', $W, 'center'),
@@ -187,14 +179,14 @@ class DirectPrintController extends Controller
             }
             $content .= $gs . 'V' . chr(1);
 
-            $result = $this->sendToComPort($comPort, $content);
+            $result = $this->sendEscPosToConfiguredPrinter($content, $settings);
 
             if (!$result['success']) {
                 return response()->json(['success' => false, 'error' => $result['error']], 500);
             }
 
-            Log::info("Print test enviado a $comPort");
-            return response()->json(['success' => true, 'message' => "Prueba enviada a $comPort"]);
+            Log::info("Print test enviado a $printerLabel");
+            return response()->json(['success' => true, 'message' => "Prueba enviada a $printerLabel"]);
 
         } catch (\Exception $e) {
             Log::error('Error en printTest: '.$e->getMessage());
@@ -214,29 +206,19 @@ class DirectPrintController extends Controller
                 return response()->json(['success' => false, 'error' => 'Venta no encontrada'], 404);
             }
 
-            $settings   = InvoiceSetting::getSettings();
-            $comPort    = $settings->ticket_printer ?? null;
-
-            if (!$comPort) {
-                return response()->json([
-                    'success' => false,
-                    'error'   => 'No hay puerto COM configurado. Configurá la impresora en Configuración → Facturación.',
-                ], 422);
-            }
-
-            $escPos = $this->generateTicketESCPOS($sale);
-
-            $result = $this->sendToComPort($comPort, $escPos);
+            $settings = InvoiceSetting::getSettings();
+            $escPos   = $this->generateTicketESCPOS($sale);
+            $result   = $this->sendEscPosToConfiguredPrinter($escPos, $settings);
 
             if (!$result['success']) {
-                return response()->json(['success' => false, 'error' => $result['error']], 500);
+                return response()->json(['success' => false, 'error' => $result['error']], 422);
             }
 
-            Log::info("Ticket enviado a $comPort para venta {$sale->sale_number}");
+            Log::info("Ticket enviado para venta {$sale->sale_number}");
 
             return response()->json([
                 'success' => true,
-                'message' => "Ticket enviado a $comPort",
+                'message' => 'Ticket enviado a impresora',
                 'sale'    => $sale->sale_number,
             ]);
 
@@ -517,6 +499,142 @@ class DirectPrintController extends Controller
         }
     }
     
+    /**
+     * Envía bytes RAW a una impresora Windows usando winspool API.
+     */
+    private function sendRawToWindowsPrinter(string $filePath, string $printerName): array
+    {
+        try {
+            $escapedPrinter = str_replace("'", "''", $printerName);
+            $escapedFile    = str_replace("'", "''", str_replace('/', '\\', $filePath));
+
+            // Usamos class (tipo referencia) para DOCINFOA con MarshalAs — patrón conocido que funciona
+            $psScript = <<<'PS'
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class RawPrinterHelper {
+    [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
+    public class DOCINFOA {
+        [MarshalAs(UnmanagedType.LPStr)] public string pDocName;
+        [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile;
+        [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
+    }
+    [DllImport("winspool.Drv", EntryPoint="OpenPrinterA",   CharSet=CharSet.Ansi, SetLastError=true)]
+    public static extern bool OpenPrinter(string szPrinter, out IntPtr hPrinter, IntPtr pd);
+    [DllImport("winspool.Drv", EntryPoint="ClosePrinter",   SetLastError=true)]
+    public static extern bool ClosePrinter(IntPtr hPrinter);
+    [DllImport("winspool.Drv", EntryPoint="StartDocPrinterA", CharSet=CharSet.Ansi, SetLastError=true)]
+    public static extern bool StartDocPrinter(IntPtr hPrinter, Int32 level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOA di);
+    [DllImport("winspool.Drv", EntryPoint="EndDocPrinter",  SetLastError=true)]
+    public static extern bool EndDocPrinter(IntPtr hPrinter);
+    [DllImport("winspool.Drv", EntryPoint="StartPagePrinter", SetLastError=true)]
+    public static extern bool StartPagePrinter(IntPtr hPrinter);
+    [DllImport("winspool.Drv", EntryPoint="EndPagePrinter", SetLastError=true)]
+    public static extern bool EndPagePrinter(IntPtr hPrinter);
+    [DllImport("winspool.Drv", EntryPoint="WritePrinter",   SetLastError=true)]
+    public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
+}
+'@ -ErrorAction Stop
+
+$printerName = 'PRINTER_PLACEHOLDER'
+$fileName    = 'FILE_PLACEHOLDER'
+
+$bytes = [System.IO.File]::ReadAllBytes($fileName)
+if ($bytes.Length -eq 0) { throw "Archivo ESC/POS vacio: $fileName" }
+
+$hPrinter = [IntPtr]::Zero
+if (-not [RawPrinterHelper]::OpenPrinter($printerName, [ref]$hPrinter, [IntPtr]::Zero)) {
+    throw "No se pudo abrir: $printerName (error $([System.Runtime.InteropServices.Marshal]::GetLastWin32Error()))"
+}
+
+$di = New-Object RawPrinterHelper+DOCINFOA
+$di.pDocName  = 'ESC/POS'
+$di.pDataType = 'RAW'
+
+if (-not [RawPrinterHelper]::StartDocPrinter($hPrinter, 1, $di)) {
+    [RawPrinterHelper]::ClosePrinter($hPrinter)
+    throw "StartDocPrinter fallo (error $([System.Runtime.InteropServices.Marshal]::GetLastWin32Error()))"
+}
+
+[RawPrinterHelper]::StartPagePrinter($hPrinter) | Out-Null
+
+$pBytes = [System.Runtime.InteropServices.Marshal]::AllocCoTaskMem($bytes.Length)
+[System.Runtime.InteropServices.Marshal]::Copy($bytes, 0, $pBytes, $bytes.Length)
+$written = 0
+$ok = [RawPrinterHelper]::WritePrinter($hPrinter, $pBytes, $bytes.Length, [ref]$written)
+[System.Runtime.InteropServices.Marshal]::FreeCoTaskMem($pBytes)
+
+[RawPrinterHelper]::EndPagePrinter($hPrinter) | Out-Null
+[RawPrinterHelper]::EndDocPrinter($hPrinter) | Out-Null
+[RawPrinterHelper]::ClosePrinter($hPrinter) | Out-Null
+
+if (-not $ok -or $written -eq 0) {
+    throw "WritePrinter fallo: ok=$ok written=$written"
+}
+Write-Output "OK:$written"
+PS;
+
+            $psScript = str_replace('PRINTER_PLACEHOLDER', $escapedPrinter, $psScript);
+            $psScript = str_replace('FILE_PLACEHOLDER',    $escapedFile,    $psScript);
+
+            $psFile = str_replace('/', '\\', tempnam(sys_get_temp_dir(), 'rawprint_') . '.ps1');
+            file_put_contents($psFile, $psScript);
+
+            $cmd    = "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"$psFile\" 2>&1";
+            $output = [];
+            $code   = 0;
+            exec($cmd, $output, $code);
+            @unlink($psFile);
+
+            $out = implode(' ', $output);
+            Log::info("sendRawToWindowsPrinter '$printerName' → code=$code | $out");
+
+            if ($code !== 0 || stripos($out, 'OK:') === false) {
+                return ['success' => false, 'error' => "Error al enviar a '$printerName': $out"];
+            }
+
+            return ['success' => true];
+
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Endpoint: lista impresoras instaladas en Windows
+     */
+    public function detectWindowsPrinters()
+    {
+        $printers = $this->getWindowsPrinters();
+        $list = array_values(array_filter(array_map('trim', (array)$printers)));
+        return response()->json(['success' => true, 'printers' => $list]);
+    }
+
+    /**
+     * Envía ESC/POS según configuración: impresora Windows o COM port.
+     */
+    private function sendEscPosToConfiguredPrinter(string $escPos, InvoiceSetting $settings): array
+    {
+        $winPrinter = $settings->default_printer ?? null;
+        $comPort    = $settings->ticket_printer  ?? null;
+
+        if ($winPrinter) {
+            $tmpFile = tempnam(sys_get_temp_dir(), 'escpos_') . '.prn';
+            file_put_contents($tmpFile, $escPos);
+            $tmpFileWin = str_replace('/', '\\', $tmpFile);
+            $result = $this->sendRawToWindowsPrinter($tmpFileWin, $winPrinter);
+            @unlink($tmpFile);
+            return $result;
+        }
+
+        if ($comPort) {
+            return $this->sendToComPort($comPort, $escPos);
+        }
+
+        return ['success' => false, 'error' => 'No hay impresora configurada. Configurá una en Configuración → Facturación.'];
+    }
+
     /**
      * Obtiene lista de impresoras instaladas en Windows
      */

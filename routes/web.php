@@ -85,6 +85,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/print/bluetooth/{sale}', [DirectPrintController::class, 'printBluetooth'])->name('print.bluetooth');
     Route::post('/print/bluetooth-test', [DirectPrintController::class, 'printTest'])->name('print.bluetooth.test');
     Route::get('/api/bluetooth-ports', [DirectPrintController::class, 'detectBluetoothPorts'])->name('bluetooth.ports');
+    Route::get('/api/windows-printers', [DirectPrintController::class, 'detectWindowsPrinters'])->name('windows.printers');
     Route::get('/print/rawbt/{sale}', [DirectPrintController::class, 'escposBase64'])->name('print.rawbt');
     Route::get('/print/rawbt/invoice/{sale}', [DirectPrintController::class, 'escposBase64Invoice'])->name('print.rawbt.invoice');
     Route::post('/print/bluetooth/invoice/{sale}', [DirectPrintController::class, 'printBluetoothInvoice'])->name('print.bluetooth.invoice');

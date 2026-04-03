@@ -231,6 +231,72 @@
                                     </div>
 
                                     
+                                    <div class="col-6">
+                                        <label class="form-label form-label-sm fw-semibold">Margen izquierdo (espacios)</label>
+                                        <input type="number" name="printer_left_margin" class="form-control form-control-sm"
+                                            value="<?php echo e(old('printer_left_margin', $settings->printer_left_margin ?? 4)); ?>"
+                                            min="0" max="10" step="1">
+                                        <div class="form-text text-muted">Ajustá si el texto queda cortado o muy pegado al borde.</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label form-label-sm fw-semibold">Ancho papel (caracteres)</label>
+                                        <input type="number" name="printer_width" class="form-control form-control-sm"
+                                            value="<?php echo e(old('printer_width', $settings->printer_width ?? 32)); ?>"
+                                            min="24" max="48" step="1">
+                                        <div class="form-text text-muted">32 = 58mm · 42 = 80mm</div>
+                                    </div>
+
+                                    
+                                    <div class="col-12 mt-2"
+                                         x-data="{
+                                            winPrinters: [],
+                                            winLoading: false,
+                                            winMsg: '',
+                                            detectWin() {
+                                                this.winLoading = true; this.winMsg = '';
+                                                fetch('<?php echo e(route('windows.printers')); ?>')
+                                                    .then(r => r.json())
+                                                    .then(d => {
+                                                        this.winPrinters = d.printers || [];
+                                                        if (this.winPrinters.length === 0) this.winMsg = 'No se encontraron impresoras. Verificá que estés en Windows.';
+                                                    })
+                                                    .catch(() => { this.winMsg = 'Error al detectar impresoras.'; })
+                                                    .finally(() => { this.winLoading = false; });
+                                            }
+                                         }"
+                                         x-init="detectWin()">
+                                        <hr class="my-2">
+                                        <label class="form-label form-label-sm fw-semibold">
+                                            <i class="bi bi-printer-fill me-1"></i>Impresora Windows (USB / Red)
+                                        </label>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <select name="default_printer" class="form-select form-select-sm">
+                                                <option value="">— Sin impresora Windows —</option>
+                                                <template x-for="p in winPrinters" :key="p">
+                                                    <option :value="p"
+                                                            :selected="p === '<?php echo e($settings->default_printer ?? ''); ?>'"
+                                                            x-text="p"></option>
+                                                </template>
+                                                <?php if($settings->default_printer ?? false): ?>
+                                                    <option value="<?php echo e($settings->default_printer); ?>" selected>
+                                                        <?php echo e($settings->default_printer); ?> (guardado)
+                                                    </option>
+                                                <?php endif; ?>
+                                            </select>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm text-nowrap"
+                                                    @click="detectWin()" :disabled="winLoading">
+                                                <span x-show="winLoading" class="spinner-border spinner-border-sm"></span>
+                                                <i x-show="!winLoading" class="bi bi-arrow-clockwise"></i>
+                                                Detectar
+                                            </button>
+                                        </div>
+                                        <div x-show="winMsg" class="form-text text-warning mt-1" x-text="winMsg"></div>
+                                        <div class="form-text text-muted">
+                                            Si seleccionás una impresora Windows, tiene prioridad sobre el puerto COM Bluetooth.
+                                        </div>
+                                    </div>
+
+                                    
                                     <div class="col-12 mt-2">
                                         <hr class="my-2">
                                         <label class="form-label form-label-sm fw-semibold">
