@@ -109,10 +109,30 @@ while ($true) {
                 $printer = (Get-WmiObject -Query "SELECT * FROM Win32_Printer WHERE Default=True").Name
             }
 
-            Write-Host "POST /print -> impresora: '$printer' ($($bytes.Length) bytes)"
-            $ok = [RawPrinterHelper]::SendBytesToPrinter($printer, $bytes)
+            Write-Host "POST /print -> destino: '$printer' ($($bytes.Length) bytes)"
 
-            $payload = if ($ok) { '{"success":true}' } else { '{"success":false,"error":"Error al enviar bytes a la impresora"}' }
+            # Si es un puerto COM, usar SerialPort en vez de winspool
+            if ($printer -match '^COM\d+$') {
+                try {
+                    $port = New-Object System.IO.Ports.SerialPort($printer, 9600, 'None', 8, 'One')
+                    $port.WriteTimeout = 15000
+                    $port.ReadTimeout  = 2000
+                    $port.Open()
+                    Start-Sleep -Milliseconds 300
+                    $port.Write($bytes, 0, $bytes.Length)
+                    $port.BaseStream.Flush()
+                    Start-Sleep -Milliseconds 800
+                    $port.Close()
+                    $payload = '{"success":true}'
+                } catch {
+                    $errMsg = $_.Exception.Message -replace '"', "'"
+                    $payload = "{`"success`":false,`"error`":`"Error COM: $errMsg`"}"
+                }
+            } else {
+                $ok = [RawPrinterHelper]::SendBytesToPrinter($printer, $bytes)
+                $payload = if ($ok) { '{"success":true}' } else { '{"success":false,"error":"Error al enviar bytes a la impresora"}' }
+            }
+
             Write-Host "Resultado: $payload"
             $buf = [System.Text.Encoding]::UTF8.GetBytes($payload)
             $res.ContentType      = "application/json"

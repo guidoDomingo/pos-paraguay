@@ -54,6 +54,20 @@ class DirectPrintController extends Controller
     }
     
     /**
+     * Test: texto plano sin ESC/POS, para diagnosticar impresora en blanco
+     */
+    public function escposBase64PlainTest()
+    {
+        $lf = chr(10);
+        $content  = "PRUEBA DE IMPRESION" . $lf;
+        $content .= "--------------------" . $lf;
+        $content .= "Si ves esto OK!" . $lf;
+        $content .= date('d/m/Y H:i:s') . $lf;
+        $content .= $lf . $lf . $lf;
+        return response()->json(['success' => true, 'base64' => base64_encode($content)]);
+    }
+
+    /**
      * Devuelve ESC/POS de FACTURA en base64 para PrintBridge (Android)
      */
     public function escposBase64Invoice($saleId)
