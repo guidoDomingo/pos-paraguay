@@ -335,7 +335,7 @@
                                                             return fetch('http://localhost:18000/print', {
                                                                 method: 'POST',
                                                                 headers: { 'Content-Type': 'application/json' },
-                                                                body: JSON.stringify({ printer: comPort, data: d.base64 })
+                                                                body: JSON.stringify({ printer: comPort, data: d.base64, base64: d.base64 })
                                                             });
                                                         })
                                                         .then(function(r) { return r.json(); })
