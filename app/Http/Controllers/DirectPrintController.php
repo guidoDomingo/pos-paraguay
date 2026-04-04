@@ -68,6 +68,113 @@ class DirectPrintController extends Controller
     }
 
     /**
+     * Test: formato CPCL para impresoras 4BARCODE / etiquetadoras
+     */
+    public function cpclBase64Test()
+    {
+        $lines = [
+            ['text' => 'PRUEBA CPCL',          'bold' => true],
+            ['text' => str_repeat('-', 32),     'bold' => false],
+            ['text' => 'Si ves esto: funciona!','bold' => false],
+            ['text' => date('d/m/Y H:i:s'),     'bold' => false],
+        ];
+
+        $lineH   = 50;
+        $height  = count($lines) * $lineH + 80;
+        $cpcl    = "! 0 200 200 {$height} 1\r\n";
+        $y       = 10;
+        foreach ($lines as $l) {
+            $font = $l['bold'] ? 5 : 4;
+            $cpcl .= "TEXT {$font} 0 10 {$y} {$l['text']}\r\n";
+            $y   += $lineH;
+        }
+        $cpcl .= "FORM\r\n";
+        $cpcl .= "PRINT\r\n";
+
+        return response()->json(['success' => true, 'base64' => base64_encode($cpcl)]);
+    }
+
+    /**
+     * Genera ticket en formato CPCL para impresoras 4BARCODE
+     */
+    public function cpclBase64($saleId)
+    {
+        try {
+            $sale = Sale::with(['saleItems.product', 'customer', 'user'])->find($saleId);
+            if (!$sale) return response()->json(['success' => false, 'error' => 'Venta no encontrada'], 404);
+
+            $settings = InvoiceSetting::getSettings();
+            $cpcl     = $this->generateTicketCPCL($sale, $settings);
+
+            return response()->json(['success' => true, 'base64' => base64_encode($cpcl), 'sale' => $sale->sale_number]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function generateTicketCPCL($sale, $settings)
+    {
+        $lineH   = 50;
+        $lines   = [];
+
+        $lines[] = ['t' => strtoupper($settings->company_name ?? 'MI EMPRESA'), 'f' => 5];
+        if ($settings->company_ruc)     $lines[] = ['t' => 'RUC: ' . $settings->company_ruc, 'f' => 4];
+        if ($settings->company_address) $lines[] = ['t' => $settings->company_address,        'f' => 4];
+        if ($settings->company_phone)   $lines[] = ['t' => 'Tel: ' . $settings->company_phone,'f' => 4];
+        $lines[] = ['t' => str_repeat('-', 32), 'f' => 4];
+        $lines[] = ['t' => 'TICKET DE VENTA',   'f' => 5];
+        $lines[] = ['t' => str_repeat('-', 32), 'f' => 4];
+        $lines[] = ['t' => 'Nro   : ' . $sale->sale_number,             'f' => 4];
+        $lines[] = ['t' => 'Fecha : ' . $sale->sale_date->format('d/m/Y H:i'), 'f' => 4];
+        $lines[] = ['t' => 'Cajero: ' . ($sale->user->name ?? 'Admin'), 'f' => 4];
+        $lines[] = ['t' => str_repeat('.', 32), 'f' => 4];
+
+        foreach ($sale->saleItems as $item) {
+            $lines[] = ['t' => $item->product_name, 'f' => 4];
+            $left    = number_format($item->quantity, 0) . ' x Gs.' . number_format($item->unit_price, 0);
+            $right   = 'Gs.' . number_format($item->total_price, 0);
+            $lines[] = ['t' => $left . str_repeat(' ', max(1, 32 - strlen($left) - strlen($right))) . $right, 'f' => 4];
+        }
+
+        $lines[] = ['t' => str_repeat('-', 32), 'f' => 4];
+
+        $sub   = 'Subtotal:';   $subV  = 'Gs.' . number_format($sale->subtotal, 0);
+        $lines[] = ['t' => $sub  . str_repeat(' ', max(1, 32 - strlen($sub)  - strlen($subV)))  . $subV,  'f' => 4];
+        $iva   = 'IVA (10%):';  $ivaV  = 'Gs.' . number_format($sale->tax_amount, 0);
+        $lines[] = ['t' => $iva  . str_repeat(' ', max(1, 32 - strlen($iva)  - strlen($ivaV)))  . $ivaV,  'f' => 4];
+
+        $lines[] = ['t' => str_repeat('-', 32), 'f' => 4];
+        $tot   = 'TOTAL:';      $totV  = 'Gs.' . number_format($sale->total_amount, 0);
+        $lines[] = ['t' => $tot  . str_repeat(' ', max(1, 32 - strlen($tot)  - strlen($totV)))  . $totV,  'f' => 5];
+        $lines[] = ['t' => str_repeat('=', 32), 'f' => 4];
+
+        $met  = 'Metodo:';     $metV  = $this->getPaymentMethodName($sale->payment_method);
+        $lines[] = ['t' => $met  . str_repeat(' ', max(1, 32 - strlen($met)  - strlen($metV)))  . $metV,  'f' => 4];
+        $rec  = 'Recibido:';  $recV  = 'Gs.' . number_format($sale->amount_paid, 0);
+        $lines[] = ['t' => $rec  . str_repeat(' ', max(1, 32 - strlen($rec)  - strlen($recV)))  . $recV,  'f' => 4];
+        if ($sale->change_amount > 0) {
+            $cam  = 'Cambio:'; $camV  = 'Gs.' . number_format($sale->change_amount, 0);
+            $lines[] = ['t' => $cam . str_repeat(' ', max(1, 32 - strlen($cam) - strlen($camV))) . $camV, 'f' => 4];
+        }
+        $lines[] = ['t' => str_repeat('.', 32), 'f' => 4];
+        $lines[] = ['t' => 'Gracias por su compra!', 'f' => 4];
+        $lines[] = ['t' => '', 'f' => 4];
+        $lines[] = ['t' => '', 'f' => 4];
+
+        $height = count($lines) * $lineH + 60;
+        $cpcl   = "! 0 200 200 {$height} 1\r\n";
+        $y      = 10;
+        foreach ($lines as $l) {
+            $cpcl .= "TEXT {$l['f']} 0 10 {$y} {$l['t']}\r\n";
+            $y    += $lineH;
+        }
+        $cpcl .= "FORM\r\n";
+        $cpcl .= "PRINT\r\n";
+
+        return $cpcl;
+    }
+
+    /**
      * Devuelve ESC/POS de FACTURA en base64 para PrintBridge (Android)
      */
     public function escposBase64Invoice($saleId)

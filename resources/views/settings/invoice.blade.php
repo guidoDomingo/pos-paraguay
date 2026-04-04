@@ -361,6 +361,13 @@
                                                 <i x-show="!testing" class="bi bi-file-text me-1"></i>
                                                 Prueba texto plano
                                             </button>
+                                            <button type="button" class="btn btn-sm btn-outline-warning"
+                                                    @click="sendTest('{{ route('print.cpcl.test') }}')"
+                                                    :disabled="testing">
+                                                <span x-show="testing" class="spinner-border spinner-border-sm me-1"></span>
+                                                <i x-show="!testing" class="bi bi-tag me-1"></i>
+                                                Prueba CPCL
+                                            </button>
                                             <span x-show="testMsg"
                                                   :class="testOk ? 'text-success' : 'text-danger'"
                                                   class="small fw-semibold"

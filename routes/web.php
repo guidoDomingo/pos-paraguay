@@ -88,6 +88,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/windows-printers', [DirectPrintController::class, 'detectWindowsPrinters'])->name('windows.printers');
     Route::get('/print/rawbt/test', [DirectPrintController::class, 'escposBase64Test'])->name('print.rawbt.test');
     Route::get('/print/rawbt/plain-test', [DirectPrintController::class, 'escposBase64PlainTest'])->name('print.rawbt.plain.test');
+    Route::get('/print/cpcl/test', [DirectPrintController::class, 'cpclBase64Test'])->name('print.cpcl.test');
+    Route::get('/print/cpcl/{sale}', [DirectPrintController::class, 'cpclBase64'])->name('print.cpcl');
     Route::get('/print/rawbt/{sale}', [DirectPrintController::class, 'escposBase64'])->name('print.rawbt');
     Route::get('/print/rawbt/invoice/{sale}', [DirectPrintController::class, 'escposBase64Invoice'])->name('print.rawbt.invoice');
     Route::post('/print/bluetooth/invoice/{sale}', [DirectPrintController::class, 'printBluetoothInvoice'])->name('print.bluetooth.invoice');
