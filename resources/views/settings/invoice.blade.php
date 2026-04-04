@@ -320,31 +320,46 @@
                                             Emparejá la 3nStar PPT305BT por Bluetooth en Windows. Aparecerá como "Standard Serial over Bluetooth link (COMx)".
                                         </div>
 
-                                        {{-- Botón impresión de prueba --}}
-                                        <div class="mt-2 d-flex align-items-center gap-2"
-                                             x-data="{ testing: false, testMsg: '', testOk: null,
-                                                sendTest() {
+                                        {{-- Botones de prueba --}}
+                                        <div class="mt-2 d-flex flex-wrap align-items-center gap-2"
+                                             x-data="{
+                                                testing: false, testMsg: '', testOk: null,
+                                                sendTest(url) {
                                                     this.testing = true; this.testMsg = ''; this.testOk = null;
-                                                    fetch('{{ route('print.bluetooth.test') }}', {
-                                                        method: 'POST',
-                                                        headers: {
-                                                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                                                            'Accept': 'application/json'
-                                                        }
-                                                    })
-                                                    .then(r => r.json())
-                                                    .then(d => { this.testOk = d.success; this.testMsg = d.success ? d.message : d.error; })
-                                                    .catch(() => { this.testOk = false; this.testMsg = 'Error de conexión'; })
-                                                    .finally(() => { this.testing = false; });
+                                                    var self = this;
+                                                    var comPort = '{{ $settings->ticket_printer ?? '' }}';
+                                                    fetch(url, { headers: { 'Accept': 'application/json' } })
+                                                        .then(function(r) { return r.json(); })
+                                                        .then(function(d) {
+                                                            if (!d.success) throw new Error(d.error || 'Error al generar datos');
+                                                            return fetch('http://localhost:18000/print', {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ printer: comPort, data: d.base64 })
+                                                            });
+                                                        })
+                                                        .then(function(r) { return r.json(); })
+                                                        .then(function(result) {
+                                                            self.testOk = result.success;
+                                                            self.testMsg = result.success ? 'Enviado OK' : (result.error || 'Error');
+                                                        })
+                                                        .catch(function(e) { self.testOk = false; self.testMsg = e.message; })
+                                                        .finally(function() { self.testing = false; });
                                                 }
                                              }">
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-info"
-                                                    @click="sendTest()"
+                                            <button type="button" class="btn btn-sm btn-outline-info"
+                                                    @click="sendTest('{{ route('print.rawbt.test') }}')"
                                                     :disabled="testing">
                                                 <span x-show="testing" class="spinner-border spinner-border-sm me-1"></span>
                                                 <i x-show="!testing" class="bi bi-printer me-1"></i>
-                                                Imprimir prueba
+                                                Prueba ESC/POS
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                    @click="sendTest('{{ route('print.rawbt.plain.test') }}')"
+                                                    :disabled="testing">
+                                                <span x-show="testing" class="spinner-border spinner-border-sm me-1"></span>
+                                                <i x-show="!testing" class="bi bi-file-text me-1"></i>
+                                                Prueba texto plano
                                             </button>
                                             <span x-show="testMsg"
                                                   :class="testOk ? 'text-success' : 'text-danger'"
