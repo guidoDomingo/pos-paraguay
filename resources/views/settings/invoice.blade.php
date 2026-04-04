@@ -236,7 +236,7 @@
                                         <div class="form-text text-muted">32 = 58mm · 42 = 80mm</div>
                                     </div>
 
-                                    {{-- Impresora Windows --}}
+                                    {{-- Impresora Windows (detección via QZ Tray en el browser) --}}
                                     <div class="col-12 mt-2"
                                          x-data="{
                                             winPrinters: [],
@@ -244,14 +244,15 @@
                                             winMsg: '',
                                             detectWin() {
                                                 this.winLoading = true; this.winMsg = '';
-                                                fetch('{{ route('windows.printers') }}')
-                                                    .then(r => r.json())
-                                                    .then(d => {
-                                                        this.winPrinters = d.printers || [];
-                                                        if (this.winPrinters.length === 0) this.winMsg = 'No se encontraron impresoras. Verificá que estés en Windows.';
+                                                var self = this;
+                                                fetch('http://localhost:18000/printers')
+                                                    .then(function(r) { return r.json(); })
+                                                    .then(function(printers) {
+                                                        self.winPrinters = Array.isArray(printers) ? printers : [];
+                                                        if (self.winPrinters.length === 0) self.winMsg = 'No se encontraron impresoras.';
                                                     })
-                                                    .catch(() => { this.winMsg = 'Error al detectar impresoras.'; })
-                                                    .finally(() => { this.winLoading = false; });
+                                                    .catch(function() { self.winMsg = 'No se pudo conectar al agente. Ejecutá print-agent.ps1 en tu PC.'; })
+                                                    .finally(function() { self.winLoading = false; });
                                             }
                                          }"
                                          x-init="detectWin()">

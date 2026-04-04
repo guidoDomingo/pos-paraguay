@@ -11,6 +11,8 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     
+    <!-- QZ Tray (detección e impresión desde el navegador) -->
+    <script src="https://cdn.qz.io/qz-tray/2.2.4/qz-tray.js"></script>
     <!-- Bootstrap CSS (CDN fallback) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 

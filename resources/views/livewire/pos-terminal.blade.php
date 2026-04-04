@@ -1177,33 +1177,20 @@
             window.open(url, '_blank');
         };
 
-        // ── QZ Tray: impresión RAW en Windows ──────────────────────────
-        window.printWithQZ = function(printerName, base64Data) {
-            // Permitir conexión sin certificado firmado (desarrollo/LAN)
-            qz.api.setTrustPromise(function() {
-                return new Promise(function(resolve) { resolve(); });
+        // ── Agente de impresion Windows (print-agent.ps1 en localhost:18000) ──
+        window.printWithAgent = function(printerName, base64Data) {
+            return fetch('http://localhost:18000/print', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ printer: printerName, data: base64Data })
+            }).then(function(r) { return r.json(); }).then(function(result) {
+                if (!result.success) throw new Error(result.error || 'Error al imprimir');
             });
-            qz.security.setCertificatePromise(function(resolve) { resolve(''); });
-            qz.security.setSignatureAlgorithm('SHA512');
-            qz.security.setSignaturePromise(function() {
-                return function(resolve) { resolve(''); };
-            });
-
-            var connectPromise = qz.websocket.isActive()
-                ? Promise.resolve()
-                : qz.websocket.connect({ retries: 2, delay: 1 });
-
-            return connectPromise
-                .then(function() {
-                    var config = qz.configs.create(printerName);
-                    var data   = [{ type: 'raw', format: 'base64', data: base64Data }];
-                    return qz.print(config, data);
-                });
         };
 
         window.directPrint = function(saleId, documentType) {
-            var printerType  = '{{ $printerSettings->printer_type ?? 'thermal' }}';
-            var winPrinter   = '{{ $printerSettings->default_printer ?? '' }}';
+            var printerType = '{{ $printerSettings->printer_type ?? 'thermal' }}';
+            var winPrinter  = '{{ $printerSettings->default_printer ?? '' }}';
             var rawbtUrl = documentType === 'factura'
                 ? '/print/rawbt/invoice/' + saleId
                 : '/print/rawbt/' + saleId;
@@ -1239,17 +1226,17 @@
                     .catch(function(e) { showToast('Error: ' + e.message + ' — ¿Está abierta la app PrintBridge?', 'error'); });
 
             } else if (winPrinter) {
-                // Windows: QZ Tray
+                // Windows: agente local print-agent.ps1
                 showToast('Enviando a impresora...', 'info');
                 fetch(rawbtUrl, { headers: { 'Accept': 'application/json' } })
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
                         if (!data.success) throw new Error(data.error || 'Error al generar documento');
-                        return window.printWithQZ(winPrinter, data.base64);
+                        return window.printWithAgent(winPrinter, data.base64);
                     })
                     .then(function() { showToast('Impreso correctamente', 'success'); })
                     .catch(function(e) {
-                        showToast('Error QZ Tray: ' + e.message + ' — ¿Está corriendo QZ Tray?', 'error');
+                        showToast('Error: ' + e.message + ' — ¿Está corriendo print-agent.ps1?', 'error');
                     });
 
             } else {
