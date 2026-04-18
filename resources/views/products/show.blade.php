@@ -229,8 +229,9 @@
                         <h5 class="modal-title">Ajustar Stock - {{ $product->name }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <form method="POST" action="#" id="stockForm">
+                    <form method="POST" action="{{ route('inventory.adjust.store') }}" id="stockForm">
                         @csrf
+                        <input type="hidden" name="product_id" value="{{ $product->id }}">
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label for="adjustment_type" class="form-label">Tipo de Ajuste</label>
@@ -246,7 +247,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="reason" class="form-label">Motivo</label>
-                                <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Motivo del ajuste de stock"></textarea>
+                                <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Motivo del ajuste de stock" required minlength="3"></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
