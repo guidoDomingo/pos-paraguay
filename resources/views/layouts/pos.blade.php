@@ -232,8 +232,18 @@
                         <span class="ms-1">{{ Auth::user()->name ?? 'Administrador Sistema' }}</span>
                     </div>
                     <div class="pos-nav-info d-none d-md-flex">
-                        <i class="bi bi-cash-stack"></i>
-                        <span class="ms-1">Caja: #001</span>
+                        @php $openCaja = \App\Models\CashRegister::getOpenRegister(Auth::user()->company_id); @endphp
+                        @if($openCaja)
+                        <a href="{{ route('cash.current') }}" class="text-decoration-none text-white d-flex align-items-center gap-1">
+                            <i class="bi bi-cash-coin text-success"></i>
+                            <span class="ms-1">Caja #{{ $openCaja->id }}</span>
+                        </a>
+                        @else
+                        <a href="{{ route('cash.open') }}" class="text-decoration-none text-warning d-flex align-items-center gap-1">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span class="ms-1">Abrir caja</span>
+                        </a>
+                        @endif
                     </div>
                     <div class="pos-nav-info">
                         <i class="bi bi-calendar3"></i>

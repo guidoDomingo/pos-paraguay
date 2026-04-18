@@ -494,9 +494,10 @@ class PosTerminal extends Component
 
             // Crear venta
             $sale = Sale::create([
-                'company_id' => Auth::user()->company_id,
-                'warehouse_id' => Auth::user()->warehouse_id ?? null,
-                'user_id' => Auth::id(),
+                'company_id'     => Auth::user()->company_id,
+                'warehouse_id'   => Auth::user()->warehouse_id ?? null,
+                'user_id'        => Auth::id(),
+                'cash_register_id' => \App\Models\CashRegister::getOpenRegister(Auth::user()->company_id)?->id,
                 'customer_id' => $this->customer_id,
                 'sale_number' => $this->generateSaleNumber(),
                 'sale_type' => $this->sale_type,

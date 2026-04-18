@@ -26,6 +26,14 @@
                         Terminal POS
                     </a>
                 </li>
+                @if(Route::has('cash.current'))
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('cash.*') ? 'active' : '' }}" href="{{ route('cash.current') }}">
+                        <i class="bi bi-cash-coin me-1"></i>
+                        Caja
+                    </a>
+                </li>
+                @endif
                 @if(Route::has('products.index'))
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}" href="{{ route('products.index') }}">

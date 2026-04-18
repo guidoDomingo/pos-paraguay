@@ -26,6 +26,14 @@
                         Terminal POS
                     </a>
                 </li>
+                <?php if(Route::has('cash.current')): ?>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo e(request()->routeIs('cash.*') ? 'active' : ''); ?>" href="<?php echo e(route('cash.current')); ?>">
+                        <i class="bi bi-cash-coin me-1"></i>
+                        Caja
+                    </a>
+                </li>
+                <?php endif; ?>
                 <?php if(Route::has('products.index')): ?>
                 <li class="nav-item">
                     <a class="nav-link <?php echo e(request()->routeIs('products.*') ? 'active' : ''); ?>" href="<?php echo e(route('products.index')); ?>">

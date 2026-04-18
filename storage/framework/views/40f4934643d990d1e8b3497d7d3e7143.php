@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $__env->yieldContent('title', 'Sistema POS Paraguay'); ?></title>
+    <!-- QZ Tray (impresión directa en Windows) -->
+    <script src="https://cdn.qz.io/qz-tray/2.2.4/qz-tray.js"></script>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -231,8 +233,18 @@
                         <span class="ms-1"><?php echo e(Auth::user()->name ?? 'Administrador Sistema'); ?></span>
                     </div>
                     <div class="pos-nav-info d-none d-md-flex">
-                        <i class="bi bi-cash-stack"></i>
-                        <span class="ms-1">Caja: #001</span>
+                        <?php $openCaja = \App\Models\CashRegister::getOpenRegister(Auth::user()->company_id); ?>
+                        <?php if($openCaja): ?>
+                        <a href="<?php echo e(route('cash.current')); ?>" class="text-decoration-none text-white d-flex align-items-center gap-1">
+                            <i class="bi bi-cash-coin text-success"></i>
+                            <span class="ms-1">Caja #<?php echo e($openCaja->id); ?></span>
+                        </a>
+                        <?php else: ?>
+                        <a href="<?php echo e(route('cash.open')); ?>" class="text-decoration-none text-warning d-flex align-items-center gap-1">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span class="ms-1">Abrir caja</span>
+                        </a>
+                        <?php endif; ?>
                     </div>
                     <div class="pos-nav-info">
                         <i class="bi bi-calendar3"></i>

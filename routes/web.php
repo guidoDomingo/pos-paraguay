@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CashRegisterController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoiceSettingController;
@@ -38,6 +39,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pos/simple', function () {
         return view('pos.simple');
     })->name('pos.simple');
+
+    // Caja
+    Route::get('/caja', [CashRegisterController::class, 'current'])->name('cash.current');
+    Route::get('/caja/abrir', [CashRegisterController::class, 'open'])->name('cash.open');
+    Route::post('/caja', [CashRegisterController::class, 'store'])->name('cash.store');
+    Route::get('/caja/cerrar', [CashRegisterController::class, 'closeForm'])->name('cash.close');
+    Route::post('/caja/cerrar', [CashRegisterController::class, 'closeStore'])->name('cash.close.store');
+    Route::post('/caja/movimiento', [CashRegisterController::class, 'addMovement'])->name('cash.movement');
+    Route::get('/caja/historial', [CashRegisterController::class, 'index'])->name('cash.index');
+    Route::get('/caja/{cashRegister}', [CashRegisterController::class, 'show'])->name('cash.show');
     
     // Products
     Route::resource('products', ProductController::class);
