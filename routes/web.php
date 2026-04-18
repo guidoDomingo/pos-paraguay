@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\CashRegisterController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\InvoiceController;
@@ -176,6 +178,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/data-management/confirm', [DataManagementController::class, 'confirmClean'])->name('data-management.confirm');
         Route::post('/data-management/clean', [DataManagementController::class, 'cleanData'])->name('data-management.clean');
         Route::get('/data-management/backup', [DataManagementController::class, 'downloadBackup'])->name('data-management.backup');
+
+        // Users & Roles
+        Route::middleware('permission:admin.users')->group(function () {
+            Route::resource('users', AdminUserController::class);
+            Route::post('users/{user}/toggle', [AdminUserController::class, 'toggleActive'])->name('users.toggle');
+            Route::resource('roles', AdminRoleController::class);
+        });
     });
 });
 

@@ -66,6 +66,22 @@
                     </a>
                 </li>
                 @endif
+                @if(auth()->user() && auth()->user()->hasPermission('admin.users'))
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') ? 'active' : '' }}"
+                        href="#" role="button" aria-expanded="false">
+                        <i class="bi bi-shield-lock me-1"></i>Admin
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">
+                            <i class="bi bi-people me-2"></i>Usuarios
+                        </a></li>
+                        <li><a class="dropdown-item" href="{{ route('admin.roles.index') }}">
+                            <i class="bi bi-shield-lock me-2"></i>Roles
+                        </a></li>
+                    </ul>
+                </li>
+                @endif
                 @if(Route::has('admin.data-management.index') && auth()->user() && auth()->user()->hasPermission('admin.settings'))
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('admin.data-management.*') ? 'active' : '' }}" href="{{ route('admin.data-management.index') }}">
@@ -79,7 +95,7 @@
             <!-- User menu -->
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" aria-expanded="false">
                         <i class="bi bi-person-circle me-2"></i>
                         {{ Auth::user()->name }}
                     </a>
@@ -106,31 +122,38 @@
 <!-- Script para solucionar conflictos de dropdown -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Solución manual para dropdown si Bootstrap tiene conflictos
-    const dropdownToggle = document.getElementById('navbarDropdown');
-    const dropdownMenu = dropdownToggle.nextElementSibling;
-    
-    if (dropdownToggle && dropdownMenu) {
-        dropdownToggle.addEventListener('click', function(e) {
+    // Manejo manual de todos los dropdowns de la navbar
+    document.querySelectorAll('.navbar .dropdown-toggle').forEach(function(toggle) {
+        const menu = toggle.nextElementSibling;
+        if (!menu) return;
+
+        toggle.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
-            // Toggle la clase 'show'
-            dropdownMenu.classList.toggle('show');
-            
-            // Toggle aria-expanded
-            const expanded = dropdownToggle.getAttribute('aria-expanded') === 'true';
-            dropdownToggle.setAttribute('aria-expanded', !expanded);
+
+            // Cerrar otros dropdowns abiertos
+            document.querySelectorAll('.navbar .dropdown-menu.show').forEach(function(m) {
+                if (m !== menu) {
+                    m.classList.remove('show');
+                    m.previousElementSibling.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            menu.classList.toggle('show');
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', !expanded);
         });
-        
-        // Cerrar dropdown al hacer clic fuera
-        document.addEventListener('click', function(e) {
-            if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                dropdownMenu.classList.remove('show');
-                dropdownToggle.setAttribute('aria-expanded', 'false');
-            }
-        });
-    }
+    });
+
+    // Cerrar todos al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.navbar .dropdown')) {
+            document.querySelectorAll('.navbar .dropdown-menu.show').forEach(function(m) {
+                m.classList.remove('show');
+                m.previousElementSibling.setAttribute('aria-expanded', 'false');
+            });
+        }
+    });
 });
 </script>
 

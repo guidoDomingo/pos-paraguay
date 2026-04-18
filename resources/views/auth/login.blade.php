@@ -207,7 +207,7 @@
                 </div>
 
                 <!-- Demo Credentials -->
-                <div class="mt-3 text-center">
+                <!-- <div class="mt-3 text-center">
                     <div class="card border-0" style="background: rgba(255,255,255,0.9); border-radius: 15px;">
                         <div class="card-body py-3">
                             <h6 class="text-dark mb-2">
@@ -230,7 +230,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
