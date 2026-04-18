@@ -32,6 +32,14 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// PWA – Digital Asset Links para TWA (APK)
+Route::get('/.well-known/assetlinks.json', function () {
+    return response()->file(public_path('.well-known/assetlinks.json'), [
+        'Content-Type' => 'application/json',
+    ]);
+});
+
+
 Route::middleware(['auth'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

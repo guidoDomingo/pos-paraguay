@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sistema POS Paraguay')</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="POS Paraguay">
+    <link rel="apple-touch-icon" href="/images/icons/icon-192.png">
+
     <!-- QZ Tray (impresión directa en Windows) -->
     <script src="https://cdn.qz.io/qz-tray/2.2.4/qz-tray.js"></script>
     <!-- Bootstrap 5 CSS -->
@@ -344,5 +354,16 @@
     </script>
 
     @stack('scripts')
+
+    <!-- Registro del Service Worker (PWA) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function (reg) { console.log('SW registrado:', reg.scope); })
+                    .catch(function (err) { console.warn('SW error:', err); });
+            });
+        }
+    </script>
 </body>
 </html>
