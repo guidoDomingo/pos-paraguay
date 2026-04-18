@@ -37,6 +37,7 @@ class Product extends Model
         'image_path',
         'track_stock',
         'is_active',
+        'hide_price',
     ];
 
     protected $casts = [
@@ -53,6 +54,7 @@ class Product extends Model
         'stock' => 'integer',
         'track_stock' => 'boolean',
         'is_active' => 'boolean',
+        'hide_price' => 'boolean',
     ];
 
     public function company(): BelongsTo
@@ -147,55 +149,61 @@ class Product extends Model
     public function getAllPrices(): array
     {
         $prices = [];
-        
+        $hidden = (bool) $this->hide_price;
+
         // Precio de venta (obligatorio)
         $prices[] = [
             'type' => 'sale_price',
             'label' => 'Precio Venta',
             'value' => $this->sale_price,
-            'description' => 'Precio estándar para venta minorista'
+            'description' => 'Precio estándar para venta minorista',
+            'hidden' => $hidden,
         ];
-        
+
         // Precio mayorista
         if ($this->wholesale_price > 0) {
             $prices[] = [
                 'type' => 'wholesale_price',
                 'label' => 'Precio Mayorista',
                 'value' => $this->wholesale_price,
-                'description' => 'Precio especial para ventas al por mayor'
+                'description' => 'Precio especial para ventas al por mayor',
+                'hidden' => $hidden,
             ];
         }
-        
+
         // Precio para cheques
         if ($this->check_price > 0) {
             $prices[] = [
                 'type' => 'check_price',
                 'label' => 'Precio Cheque',
                 'value' => $this->check_price,
-                'description' => $this->check_price_description ?? 'Precio especial para pagos con cheque'
+                'description' => $this->check_price_description ?? 'Precio especial para pagos con cheque',
+                'hidden' => $hidden,
             ];
         }
-        
+
         // Precio a crédito
         if ($this->credit_price > 0) {
             $prices[] = [
                 'type' => 'credit_price',
                 'label' => 'Precio Crédito',
                 'value' => $this->credit_price,
-                'description' => $this->credit_price_description ?? 'Precio para ventas a crédito'
+                'description' => $this->credit_price_description ?? 'Precio para ventas a crédito',
+                'hidden' => $hidden,
             ];
         }
-        
+
         // Precio especial
         if ($this->special_price > 0) {
             $prices[] = [
                 'type' => 'special_price',
                 'label' => 'Precio Especial',
                 'value' => $this->special_price,
-                'description' => $this->special_price_description ?? 'Precio especial promocional'
+                'description' => $this->special_price_description ?? 'Precio especial promocional',
+                'hidden' => $hidden,
             ];
         }
-        
+
         // Precios personalizados desde JSON
         if ($this->custom_prices && is_array($this->custom_prices)) {
             foreach ($this->custom_prices as $index => $customPrice) {
@@ -204,7 +212,8 @@ class Product extends Model
                         'type' => 'custom_' . $index,
                         'label' => $customPrice['name'] ?? 'Precio Personalizado',
                         'value' => $customPrice['price'],
-                        'description' => $customPrice['description'] ?? ''
+                        'description' => $customPrice['description'] ?? '',
+                        'hidden' => $hidden,
                     ];
                 }
             }

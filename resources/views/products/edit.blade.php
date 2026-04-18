@@ -176,6 +176,21 @@
                                         <h6 class="mb-0"><i class="bi bi-currency-exchange me-2"></i>Información de Precios</h6>
                                     </div>
                                     <div class="card-body">
+                                        <!-- Visibilidad de precios en POS -->
+                                        <div class="mb-4 p-3 rounded border" style="background:#f8f9fa;">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" role="switch"
+                                                       id="hide_price" name="hide_price" value="1"
+                                                       {{ old('hide_price', $product->hide_price) ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-semibold" for="hide_price">
+                                                    <i class="bi bi-eye-slash me-1 text-warning"></i>
+                                                    Ocultar precio en la selección de venta (POS)
+                                                </label>
+                                            </div>
+                                            <div class="form-text mt-1">
+                                                Si está activado, el precio se mostrará como <strong>••••••</strong> en el modal de selección del POS y el vendedor deberá revelarlo manualmente.
+                                            </div>
+                                        </div>
                                         <div class="row g-3">
                                             <div class="col-md-4">
                                                 <div class="mb-3">

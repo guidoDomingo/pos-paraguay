@@ -62,13 +62,14 @@ class ProductController extends Controller
         $data['company_id'] = Auth::user()->company_id;
         $data['track_stock'] = $request->has('track_stock');
         $data['is_active'] = $request->has('is_active');
-        
+        $data['hide_price'] = $request->has('hide_price');
+
         // Set default values
         if (!$data['track_stock']) {
             $data['stock'] = null;
             $data['min_stock'] = null;
         }
-        
+
         // Procesar imagen si se subió una
         if ($request->hasFile('image')) {
             try {

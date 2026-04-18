@@ -465,10 +465,11 @@
                 <h6 style="margin-bottom: 15px; color: #333;">💰 Selecciona el precio a usar:</h6>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $availablePrices; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $price): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <button wire:click="selectPrice(<?php echo e($index); ?>)" 
-                            style="background: #f8f9fa; border: 2px solid #007bff; padding: 15px; border-radius: 10px; cursor: pointer; text-align: left; transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center;"
-                            onmouseover="this.style.background='#e7f1ff'; this.style.transform='translateY(-2px)'"
-                            onmouseout="this.style.background='#f8f9fa'; this.style.transform='translateY(0)'">
+                    <div role="button" tabindex="0"
+                         wire:click="selectPrice(<?php echo e($index); ?>)"
+                         style="background: #f8f9fa; border: 2px solid #007bff; padding: 15px; border-radius: 10px; cursor: pointer; text-align: left; transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center;"
+                         onmouseover="this.style.background='#e7f1ff'; this.style.transform='translateY(-2px)'"
+                         onmouseout="this.style.background='#f8f9fa'; this.style.transform='translateY(0)'">
                         <div>
                             <strong style="color: #007bff; font-size: 16px;"><?php echo e($price['label']); ?></strong>
                             <br>
@@ -477,19 +478,34 @@
 
                             </small>
                         </div>
-                        <div style="text-align: right;">
+                        <div style="text-align: right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                            <!--[if BLOCK]><![endif]--><?php if(!empty($price['hidden'])): ?>
+                            <span class="price-hidden-badge-<?php echo e($index); ?>" style="font-size: 20px; color: #adb5bd; letter-spacing: 5px; font-weight: bold; line-height:1;">• • • •</span>
+                            <span class="price-visible-badge-<?php echo e($index); ?>" style="display:none; font-size: 18px; font-weight: bold; color: #28a745;">
+                                ₲ <?php echo e(number_format($price['value'], 0, ',', '.')); ?>
+
+                            </span>
+                            <button type="button"
+                                    id="reveal-btn-<?php echo e($index); ?>"
+                                    onclick="event.stopPropagation(); togglePriceReveal(<?php echo e($index); ?>)"
+                                    style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(102,126,234,0.45); transition: all 0.2s ease;"
+                                    onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 14px rgba(102,126,234,0.65)'"
+                                    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(102,126,234,0.45)'">
+                                <i class="bi bi-eye-fill" id="eye-icon-<?php echo e($index); ?>"></i>
+                            </button>
+                            <?php else: ?>
                             <span style="font-size: 18px; font-weight: bold; color: #28a745;">
                                 ₲ <?php echo e(number_format($price['value'], 0, ',', '.')); ?>
 
                             </span>
                             <!--[if BLOCK]><![endif]--><?php if($price['type'] === 'wholesale_price' && $price['value'] < $selectedProduct->sale_price): ?>
-                                <br>
                                 <small style="color: #28a745;">
                                     ⬇️ <?php echo e(number_format((($selectedProduct->sale_price - $price['value']) / $selectedProduct->sale_price) * 100, 0)); ?>% menos
                                 </small>
                             <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
+                            <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
                         </div>
-                    </button>
+                    </div>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><!--[if ENDBLOCK]><![endif]-->
                 </div>
             </div>
@@ -1116,6 +1132,23 @@
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
         }
 
+        // Revelar/ocultar precio en el modal de selección de precio
+        function togglePriceReveal(index) {
+            var badge = document.querySelector('.price-hidden-badge-' + index);
+            var visible = document.querySelector('.price-visible-badge-' + index);
+            var icon = document.getElementById('eye-icon-' + index);
+            if (!badge || !visible) return;
+            if (badge.style.display === 'none') {
+                badge.style.display = '';
+                visible.style.display = 'none';
+                if (icon) icon.className = 'bi bi-eye-fill';
+            } else {
+                badge.style.display = 'none';
+                visible.style.display = '';
+                if (icon) icon.className = 'bi bi-eye-slash-fill';
+            }
+        }
+
         // Función para mostrar toast notifications
         function showToast(message, type) {
             if (!type) type = 'info';
@@ -1188,31 +1221,36 @@
             window.open(url, '_blank');
         };
 
+        // ── Agente de impresion Windows (print-agent.ps1 en localhost:18000) ──
+        window.printWithAgent = function(printerName, base64Data) {
+            return fetch('http://localhost:18000/print', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ printer: printerName, data: base64Data })
+            }).then(function(r) { return r.json(); }).then(function(result) {
+                if (!result.success) throw new Error(result.error || 'Error al imprimir');
+            });
+        };
+
         window.directPrint = function(saleId, documentType) {
             var printerType = '<?php echo e($printerSettings->printer_type ?? 'thermal'); ?>';
-
-            // Modo PDF: abrir PDF y disparar diálogo de impresión del navegador
-            if (printerType === 'pdf') {
-                var pdfUrl = documentType === 'factura'
-                    ? '/pdf/invoice/' + saleId
-                    : '/pdf/ticket/' + saleId;
-                var printWin = window.open(pdfUrl, '_blank');
-                if (printWin) {
-                    printWin.onload = function() { printWin.focus(); printWin.print(); };
-                }
-                return;
-            }
-
-            // Modo térmica (ESC/POS)
-            var isAndroid = /android/i.test(navigator.userAgent);
+            var winPrinter  = '<?php echo e($printerSettings->default_printer ?? ''); ?>';
             var rawbtUrl = documentType === 'factura'
                 ? '/print/rawbt/invoice/' + saleId
                 : '/print/rawbt/' + saleId;
-            var comUrl = documentType === 'factura'
-                ? '/print/bluetooth/invoice/' + saleId
-                : '/print/bluetooth/' + saleId;
+
+            // Modo PDF
+            if (printerType === 'pdf') {
+                var pdfUrl = documentType === 'factura' ? '/pdf/invoice/' + saleId : '/pdf/ticket/' + saleId;
+                var printWin = window.open(pdfUrl, '_blank');
+                if (printWin) { printWin.onload = function() { printWin.focus(); printWin.print(); }; }
+                return;
+            }
+
+            var isAndroid = /android/i.test(navigator.userAgent);
 
             if (isAndroid) {
+                // Android: PrintBridge en localhost:18000
                 showToast('Enviando a impresora...', 'info');
                 fetch(rawbtUrl, { headers: { 'Accept': 'application/json' } })
                     .then(function(r) { return r.json(); })
@@ -1226,27 +1264,27 @@
                     })
                     .then(function(r) { return r.json(); })
                     .then(function(result) {
-                        if (result.success) {
-                            showToast('Impreso correctamente', 'success');
-                        } else {
-                            showToast('Error: ' + (result.error || 'No se pudo imprimir'), 'error');
-                        }
+                        if (result.success) showToast('Impreso correctamente', 'success');
+                        else showToast('Error: ' + (result.error || 'No se pudo imprimir'), 'error');
                     })
                     .catch(function(e) { showToast('Error: ' + e.message + ' — ¿Está abierta la app PrintBridge?', 'error'); });
+
+            } else if (winPrinter) {
+                // Windows: agente local print-agent.ps1
+                showToast('Enviando a impresora...', 'info');
+                fetch(rawbtUrl, { headers: { 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (!data.success) throw new Error(data.error || 'Error al generar documento');
+                        return window.printWithAgent(winPrinter, data.base64);
+                    })
+                    .then(function() { showToast('Impreso correctamente', 'success'); })
+                    .catch(function(e) {
+                        showToast('Error: ' + e.message + ' — ¿Está corriendo print-agent.ps1?', 'error');
+                    });
+
             } else {
-                fetch(comUrl, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>', 'Accept': 'application/json' }
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        showToast('Enviado a impresora', 'success');
-                    } else {
-                        showToast('Error: ' + (data.error || 'No se pudo imprimir'), 'error');
-                    }
-                })
-                .catch(function(e) { showToast('Error: ' + e.message, 'error'); });
+                showToast('Configurá una impresora en Configuración → Facturación', 'warning');
             }
         };
 

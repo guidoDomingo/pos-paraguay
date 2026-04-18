@@ -462,10 +462,11 @@
                 <h6 style="margin-bottom: 15px; color: #333;">💰 Selecciona el precio a usar:</h6>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     @foreach($availablePrices as $index => $price)
-                    <button wire:click="selectPrice({{ $index }})" 
-                            style="background: #f8f9fa; border: 2px solid #007bff; padding: 15px; border-radius: 10px; cursor: pointer; text-align: left; transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center;"
-                            onmouseover="this.style.background='#e7f1ff'; this.style.transform='translateY(-2px)'"
-                            onmouseout="this.style.background='#f8f9fa'; this.style.transform='translateY(0)'">
+                    <div role="button" tabindex="0"
+                         wire:click="selectPrice({{ $index }})"
+                         style="background: #f8f9fa; border: 2px solid #007bff; padding: 15px; border-radius: 10px; cursor: pointer; text-align: left; transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center;"
+                         onmouseover="this.style.background='#e7f1ff'; this.style.transform='translateY(-2px)'"
+                         onmouseout="this.style.background='#f8f9fa'; this.style.transform='translateY(0)'">
                         <div>
                             <strong style="color: #007bff; font-size: 16px;">{{ $price['label'] }}</strong>
                             <br>
@@ -473,18 +474,32 @@
                                 {{ $price['description'] ?? 'Sin descripción' }}
                             </small>
                         </div>
-                        <div style="text-align: right;">
+                        <div style="text-align: right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                            @if(!empty($price['hidden']))
+                            <span class="price-hidden-badge-{{ $index }}" style="font-size: 20px; color: #adb5bd; letter-spacing: 5px; font-weight: bold; line-height:1;">• • • •</span>
+                            <span class="price-visible-badge-{{ $index }}" style="display:none; font-size: 18px; font-weight: bold; color: #28a745;">
+                                ₲ {{ number_format($price['value'], 0, ',', '.') }}
+                            </span>
+                            <button type="button"
+                                    id="reveal-btn-{{ $index }}"
+                                    onclick="event.stopPropagation(); togglePriceReveal({{ $index }})"
+                                    style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(102,126,234,0.45); transition: all 0.2s ease;"
+                                    onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 14px rgba(102,126,234,0.65)'"
+                                    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(102,126,234,0.45)'">
+                                <i class="bi bi-eye-fill" id="eye-icon-{{ $index }}"></i>
+                            </button>
+                            @else
                             <span style="font-size: 18px; font-weight: bold; color: #28a745;">
                                 ₲ {{ number_format($price['value'], 0, ',', '.') }}
                             </span>
                             @if($price['type'] === 'wholesale_price' && $price['value'] < $selectedProduct->sale_price)
-                                <br>
                                 <small style="color: #28a745;">
                                     ⬇️ {{ number_format((($selectedProduct->sale_price - $price['value']) / $selectedProduct->sale_price) * 100, 0) }}% menos
                                 </small>
                             @endif
+                            @endif
                         </div>
-                    </button>
+                    </div>
                     @endforeach
                 </div>
             </div>
@@ -1103,6 +1118,23 @@
                 "'": '&#039;'
             };
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Revelar/ocultar precio en el modal de selección de precio
+        function togglePriceReveal(index) {
+            var badge = document.querySelector('.price-hidden-badge-' + index);
+            var visible = document.querySelector('.price-visible-badge-' + index);
+            var icon = document.getElementById('eye-icon-' + index);
+            if (!badge || !visible) return;
+            if (badge.style.display === 'none') {
+                badge.style.display = '';
+                visible.style.display = 'none';
+                if (icon) icon.className = 'bi bi-eye-fill';
+            } else {
+                badge.style.display = 'none';
+                visible.style.display = '';
+                if (icon) icon.className = 'bi bi-eye-slash-fill';
+            }
         }
 
         // Función para mostrar toast notifications
