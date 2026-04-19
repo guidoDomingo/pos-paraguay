@@ -26,6 +26,10 @@
             font-weight: bold;
             margin: 0 0 5px 0;
             text-transform: uppercase;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            line-height: 1.4;
         }
         .company-info {
             font-size: 10px;
