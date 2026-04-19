@@ -32,6 +32,14 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// PWA – manifest con Content-Type correcto
+Route::get('/manifest.json', function () {
+    return response()->file(public_path('manifest.json'), [
+        'Content-Type'                => 'application/manifest+json',
+        'Access-Control-Allow-Origin' => '*',
+    ]);
+});
+
 // PWA – Digital Asset Links para TWA (APK)
 Route::get('/.well-known/assetlinks.json', function () {
     return response()->file(public_path('.well-known/assetlinks.json'), [
