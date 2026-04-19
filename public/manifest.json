@@ -1,4 +1,5 @@
 {
+    "id": "/",
     "name": "Sistema POS Paraguay",
     "short_name": "POS Paraguay",
     "description": "Sistema de Punto de Venta para gestión de productos, ventas e inventario.",
@@ -57,10 +58,30 @@
             "src": "/images/icons/icon-512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/images/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ],
-    "screenshots": [],
+    "screenshots": [
+        {
+            "src": "/images/icons/screenshot-mobile.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "label": "Sistema POS Paraguay en móvil"
+        },
+        {
+            "src": "/images/icons/screenshot-desktop.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Sistema POS Paraguay en escritorio"
+        }
+    ],
     "shortcuts": [
         {
             "name": "Punto de Venta",
