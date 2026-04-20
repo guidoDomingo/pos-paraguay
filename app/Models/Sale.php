@@ -24,6 +24,7 @@ class Sale extends Model
         'document_type',
         'customer_name',
         'customer_document',
+        'customer_address',
         'sale_type',
         'subtotal',
         'subtotal_amount',

@@ -395,6 +395,23 @@
             </div>
             @endif
 
+            <!-- Campos opcionales de Cliente para Ticket -->
+            @if($document_type === 'ticket')
+            <div style="margin-bottom: 25px; background: #f0f4ff; padding: 20px; border-radius: 10px; border: 1px solid #c0d0f0;">
+                <h6 style="margin-bottom: 5px; color: #4a5568;">👤 Datos del Cliente <span style="font-weight: normal; font-size: 13px; color: #888;">(Opcional)</span></h6>
+                <p style="font-size: 12px; color: #888; margin-bottom: 15px;">Si se completan, aparecerán en el ticket.</p>
+                <div style="margin-bottom: 15px;">
+                    <input type="text" wire:model.blur="customer_name" placeholder="Nombre del cliente" style="width: 100%; padding: 10px; border: 1px solid #c0d0f0; border-radius: 5px; font-size: 16px; background: #fff;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <input type="text" wire:model="customer_ruc" placeholder="CI / RUC" style="width: 100%; padding: 10px; border: 1px solid #c0d0f0; border-radius: 5px; font-size: 16px; background: #fff;">
+                </div>
+                <div>
+                    <input type="text" wire:model="customer_address" placeholder="Dirección" style="width: 100%; padding: 10px; border: 1px solid #c0d0f0; border-radius: 5px; font-size: 16px; background: #fff;">
+                </div>
+            </div>
+            @endif
+
             <!-- Botones -->
             <div style="display: flex; gap: 15px; justify-content: flex-end;">
                 <button wire:click="closePaymentModal" style="background: #6c757d; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 16px;">

@@ -504,6 +504,7 @@ class PosTerminal extends Component
                 'document_type' => $this->document_type,
                 'customer_name' => $this->customer_name,
                 'customer_document' => $this->customer_ruc,
+                'customer_address' => $this->customer_address,
                 'subtotal' => $this->subtotal,
                 'tax_amount' => $this->tax_amount,
                 'discount_amount' => $this->discount_amount,

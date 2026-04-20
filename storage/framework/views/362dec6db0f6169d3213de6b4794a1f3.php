@@ -26,6 +26,10 @@
             font-weight: bold;
             margin: 0 0 5px 0;
             text-transform: uppercase;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            line-height: 1.4;
         }
         .company-info {
             font-size: 10px;
@@ -208,6 +212,12 @@
             <div><strong>Vendedor:</strong> <?php echo e($sale->user->name); ?></div>
             <?php if($sale->customer_name && $sale->customer_name !== 'Cliente General'): ?>
                 <div><strong>Cliente:</strong> <?php echo e($sale->customer_name); ?></div>
+                <?php if($sale->customer_document): ?>
+                <div><strong>CI/RUC:</strong> <?php echo e($sale->customer_document); ?></div>
+                <?php endif; ?>
+                <?php if($sale->customer_address): ?>
+                <div><strong>Dir:</strong> <?php echo e($sale->customer_address); ?></div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
@@ -227,9 +237,6 @@
 
                     </div>
                 </div>
-                <?php if($item->iva_type !== 'EXENTO'): ?>
-                    <div class="iva-info"><?php echo e($item->iva_type); ?></div>
-                <?php endif; ?>
             </div>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
@@ -240,12 +247,6 @@
             <div class="total-label">Subtotal:</div>
             <div class="total-amount">Gs. <?php echo e(number_format($sale->subtotal, 0, ',', '.')); ?></div>
         </div>
-        <?php if($sale->tax_amount > 0): ?>
-        <div class="total-line">
-            <div class="total-label">IVA (10%):</div>
-            <div class="total-amount">Gs. <?php echo e(number_format($sale->tax_amount, 0, ',', '.')); ?></div>
-        </div>
-        <?php endif; ?>
         <?php if($sale->discount_amount > 0): ?>
         <div class="total-line">
             <div class="total-label">Descuento:</div>

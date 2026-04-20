@@ -137,6 +137,14 @@
             <div><strong>Cajero:</strong> {{ $sale->user->name }}</div>
             @if($sale->customer)
             <div><strong>Cliente:</strong> {{ $sale->customer->name }}</div>
+            @elseif($sale->customer_name)
+            <div><strong>Cliente:</strong> {{ $sale->customer_name }}</div>
+            @if($sale->customer_document)
+            <div><strong>CI/RUC:</strong> {{ $sale->customer_document }}</div>
+            @endif
+            @if($sale->customer_address)
+            <div><strong>Dir:</strong> {{ $sale->customer_address }}</div>
+            @endif
             @endif
         </div>
 
@@ -150,9 +158,6 @@
                 </div>
                 <div class="item-details">
                     {{ number_format($item->quantity, 0) }} x ₲ {{ number_format($item->unit_price, 0, ',', '.') }}
-                    @if($item->iva_type !== 'EXENTO')
-                    ({{ $item->iva_type }})
-                    @endif
                 </div>
             </div>
             @endforeach
@@ -164,12 +169,6 @@
                 <span>Subtotal:</span>
                 <span>₲ {{ number_format($sale->subtotal, 0, ',', '.') }}</span>
             </div>
-            @if($sale->tax_amount > 0)
-            <div class="total-line">
-                <span>IVA:</span>
-                <span>₲ {{ number_format($sale->tax_amount, 0, ',', '.') }}</span>
-            </div>
-            @endif
             @if($sale->discount_amount > 0)
             <div class="total-line">
                 <span>Descuento:</span>

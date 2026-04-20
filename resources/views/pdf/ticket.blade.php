@@ -212,6 +212,12 @@
             <div><strong>Vendedor:</strong> {{ $sale->user->name }}</div>
             @if($sale->customer_name && $sale->customer_name !== 'Cliente General')
                 <div><strong>Cliente:</strong> {{ $sale->customer_name }}</div>
+                @if($sale->customer_document)
+                <div><strong>CI/RUC:</strong> {{ $sale->customer_document }}</div>
+                @endif
+                @if($sale->customer_address)
+                <div><strong>Dir:</strong> {{ $sale->customer_address }}</div>
+                @endif
             @endif
         </div>
     </div>
@@ -229,9 +235,6 @@
                         Gs. {{ number_format($item->total_price, 0, ',', '.') }}
                     </div>
                 </div>
-                @if($item->iva_type !== 'EXENTO')
-                    <div class="iva-info">{{ $item->iva_type }}</div>
-                @endif
             </div>
         @endforeach
     </div>
@@ -242,12 +245,6 @@
             <div class="total-label">Subtotal:</div>
             <div class="total-amount">Gs. {{ number_format($sale->subtotal, 0, ',', '.') }}</div>
         </div>
-        @if($sale->tax_amount > 0)
-        <div class="total-line">
-            <div class="total-label">IVA (10%):</div>
-            <div class="total-amount">Gs. {{ number_format($sale->tax_amount, 0, ',', '.') }}</div>
-        </div>
-        @endif
         @if($sale->discount_amount > 0)
         <div class="total-line">
             <div class="total-label">Descuento:</div>
