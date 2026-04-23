@@ -127,6 +127,11 @@ class DirectPrintController extends Controller
         $lines[] = ['t' => 'Nro   : ' . $sale->sale_number,             'f' => 4];
         $lines[] = ['t' => 'Fecha : ' . $sale->sale_date->format('d/m/Y H:i'), 'f' => 4];
         $lines[] = ['t' => 'Cajero: ' . ($sale->user->name ?? 'Admin'), 'f' => 4];
+        if (!empty($sale->customer_name) && $sale->customer_name !== 'Cliente General') {
+            $lines[] = ['t' => 'Cliente: ' . $sale->customer_name, 'f' => 4];
+            if (!empty($sale->customer_document)) $lines[] = ['t' => 'CI/RUC: ' . $sale->customer_document, 'f' => 4];
+            if (!empty($sale->customer_address))  $lines[] = ['t' => 'Dir   : ' . $sale->customer_address,  'f' => 4];
+        }
         $lines[] = ['t' => str_repeat('.', 32), 'f' => 4];
 
         foreach ($sale->saleItems as $item) {
@@ -928,6 +933,11 @@ PS;
                 $userName = $sale->user->name;
             }
             $content .= "Vendedor: " . $userName . "\n";
+            if (!empty($sale->customer_name) && $sale->customer_name !== 'Cliente General') {
+                $content .= "Cliente: " . $sale->customer_name . "\n";
+                if (!empty($sale->customer_document)) $content .= "CI/RUC: " . $sale->customer_document . "\n";
+                if (!empty($sale->customer_address))  $content .= "Dir   : " . $sale->customer_address . "\n";
+            }
             $content .= str_repeat(".", $ticketWidth) . "\n\n";
             
             // === PRODUCTOS ===
@@ -1038,6 +1048,11 @@ PS;
         $lines[] = 'Nro   : ' . $sale->sale_number;
         $lines[] = 'Fecha : ' . $sale->sale_date->format('d/m/Y H:i');
         array_push($lines, ...$this->wrapLines('Cajero: ' . ($sale->user->name ?? 'Admin'), $W, '        '));
+        if (!empty($sale->customer_name) && $sale->customer_name !== 'Cliente General') {
+            array_push($lines, ...$this->wrapLines('Cliente: ' . $sale->customer_name, $W, '         '));
+            if (!empty($sale->customer_document)) $lines[] = 'CI/RUC: ' . $sale->customer_document;
+            if (!empty($sale->customer_address))  array_push($lines, ...$this->wrapLines('Dir   : ' . $sale->customer_address, $W, '        '));
+        }
         $lines[] = str_repeat('.', $W);
 
         foreach ($sale->saleItems as $item) {
