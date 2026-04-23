@@ -5,6 +5,10 @@
 /public/storage
 /public/resources/*
 /storage/*.key
+/storage/framework
+/storage/app/*
+/bootstrap/cache/*.php
+/public/app/*
 /vendor
 .env
 .env.backup

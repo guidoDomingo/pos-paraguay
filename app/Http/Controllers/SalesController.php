@@ -97,6 +97,22 @@ class SalesController extends Controller
         $salesCount = (clone $baseQuery)->count();
         $averageSale = $salesCount > 0 ? $totalSales / $salesCount : 0;
         $itemsSold = (clone $baseQuery)->withSum('saleItems', 'quantity')->get()->sum('sale_items_sum_quantity');
+
+        // Rentabilidad (ganancia = precio venta - costo)
+        $profitQuery = DB::table('sale_items as si')
+            ->join('sales as s', 'si.sale_id', '=', 's.id')
+            ->join('products as p', 'si.product_id', '=', 'p.id')
+            ->where('s.company_id', $companyId)
+            ->where('s.status', '!=', 'CANCELLED')
+            ->whereBetween('s.created_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay()
+            ]);
+        if ($userId) $profitQuery->where('s.user_id', $userId);
+
+        $totalCost   = (clone $profitQuery)->selectRaw('SUM(p.cost_price * si.quantity) as total')->value('total') ?? 0;
+        $totalProfit = (clone $profitQuery)->selectRaw('SUM((si.unit_price - p.cost_price) * si.quantity) as total')->value('total') ?? 0;
+        $profitMargin = $totalSales > 0 ? round(($totalProfit / $totalSales) * 100, 1) : 0;
         
         // Ventas por día
         $salesByDay = (clone $baseQuery)->select(
@@ -109,11 +125,13 @@ class SalesController extends Controller
         
         // Productos más vendidos
         $topProducts = SaleItem::select('product_id', 'products.name as product_name')
-            ->selectRaw('SUM(quantity) as total_quantity')
-            ->selectRaw('SUM(total_price) as total_revenue')
+            ->selectRaw('SUM(sale_items.quantity) as total_quantity')
+            ->selectRaw('SUM(sale_items.total_price) as total_revenue')
+            ->selectRaw('SUM((sale_items.unit_price - products.cost_price) * sale_items.quantity) as total_profit')
             ->join('products', 'sale_items.product_id', '=', 'products.id')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->where('sales.company_id', $companyId)
+            ->where('sales.status', '!=', 'CANCELLED')
             ->whereBetween('sales.created_at', [
                 Carbon::parse($startDate)->startOfDay(),
                 Carbon::parse($endDate)->endOfDay()
@@ -163,16 +181,18 @@ class SalesController extends Controller
         $chartProdLabels  = $topProducts->pluck('product_name')->values()->toArray();
         $chartProdRevenue = $topProducts->pluck('total_revenue')->map(fn($v) => (float)$v)->values()->toArray();
         $chartProdQty     = $topProducts->pluck('total_quantity')->map(fn($v) => (int)$v)->values()->toArray();
+        $chartProdProfit  = $topProducts->pluck('total_profit')->map(fn($v) => (float)$v)->values()->toArray();
 
         $chartUserLabels = $salesByUser->pluck('user_name')->values()->toArray();
         $chartUserTotals = $salesByUser->pluck('total_amount')->map(fn($v) => (float)$v)->values()->toArray();
 
         return view('sales.reports', compact(
             'totalSales', 'salesCount', 'averageSale', 'itemsSold',
+            'totalProfit', 'totalCost', 'profitMargin',
             'salesByDay', 'topProducts', 'salesByUser', 'users', 'salesDetail',
             'startDate', 'endDate', 'userId',
             'chartDayLabels', 'chartDayTotals', 'chartDayCounts',
-            'chartProdLabels', 'chartProdRevenue', 'chartProdQty',
+            'chartProdLabels', 'chartProdRevenue', 'chartProdQty', 'chartProdProfit',
             'chartUserLabels', 'chartUserTotals'
         ));
     }

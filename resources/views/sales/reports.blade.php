@@ -82,49 +82,73 @@
 
             {{-- ── STATS ── --}}
             <div class="row g-3 mb-4">
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="stats-card" style="background:linear-gradient(135deg,#667eea,#764ba2)">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Total Ventas</div>
-                                <div class="fw-bold" style="font-size:1.5rem;">₲ {{ number_format($totalSales, 0, ',', '.') }}</div>
+                                <div class="fw-bold" style="font-size:1.3rem;">₲ {{ number_format($totalSales, 0, ',', '.') }}</div>
                             </div>
                             <div class="icon-wrap"><i class="bi bi-currency-dollar"></i></div>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="stats-card" style="background:linear-gradient(135deg,#f093fb,#f5576c)">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Cantidad</div>
-                                <div class="fw-bold" style="font-size:1.5rem;">{{ number_format($salesCount) }}</div>
+                                <div class="fw-bold" style="font-size:1.3rem;">{{ number_format($salesCount) }}</div>
                                 <div class="small opacity-75">ventas</div>
                             </div>
                             <div class="icon-wrap"><i class="bi bi-cart-check"></i></div>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="stats-card" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Venta Promedio</div>
-                                <div class="fw-bold" style="font-size:1.5rem;">₲ {{ number_format($averageSale, 0, ',', '.') }}</div>
+                                <div class="fw-bold" style="font-size:1.3rem;">₲ {{ number_format($averageSale, 0, ',', '.') }}</div>
                             </div>
                             <div class="icon-wrap"><i class="bi bi-graph-up"></i></div>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="stats-card" style="background:linear-gradient(135deg,#43e97b,#38f9d7)">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Productos Vendidos</div>
-                                <div class="fw-bold" style="font-size:1.5rem;">{{ number_format($itemsSold ?? 0) }}</div>
+                                <div class="fw-bold" style="font-size:1.3rem;">{{ number_format($itemsSold ?? 0) }}</div>
                                 <div class="small opacity-75">unidades</div>
                             </div>
                             <div class="icon-wrap"><i class="bi bi-box"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stats-card" style="background:linear-gradient(135deg,#f7971e,#ffd200)">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Ganancia Total</div>
+                                <div class="fw-bold" style="font-size:1.3rem;">₲ {{ number_format($totalProfit, 0, ',', '.') }}</div>
+                                <div class="small opacity-75">Costo: ₲ {{ number_format($totalCost, 0, ',', '.') }}</div>
+                            </div>
+                            <div class="icon-wrap"><i class="bi bi-graph-up-arrow"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="stats-card" style="background:linear-gradient(135deg,#11998e,#38ef7d)">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="small opacity-75 mb-1 text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Margen</div>
+                                <div class="fw-bold" style="font-size:1.3rem;">{{ $profitMargin }}%</div>
+                                <div class="small opacity-75">rentabilidad</div>
+                            </div>
+                            <div class="icon-wrap"><i class="bi bi-percent"></i></div>
                         </div>
                     </div>
                 </div>
@@ -145,13 +169,65 @@
                 </div>
             </div>
 
-            {{-- ── PRODUCTOS + VENDEDORES ── --}}
+            {{-- ── TOP PRODUCTOS CON RENTABILIDAD ── --}}
+            <div class="card chart-card mb-4">
+                <div class="card-body p-4">
+                    <h5 class="section-title"><i class="bi bi-trophy me-2"></i>Top Productos — Rentabilidad</h5>
+                    @if($topProducts->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table data-table table-hover mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Producto</th>
+                                    <th class="text-end">Unidades</th>
+                                    <th class="text-end">Ingresos</th>
+                                    <th class="text-end">Ganancia</th>
+                                    <th class="text-end">Margen</th>
+                                    <th style="min-width:120px;">Rentabilidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($topProducts as $i => $prod)
+                                @php
+                                    $margin = $prod->total_revenue > 0 ? round(($prod->total_profit / $prod->total_revenue) * 100, 1) : 0;
+                                    $barColor = $margin >= 30 ? '#38ef7d' : ($margin >= 15 ? '#ffd200' : '#f5576c');
+                                @endphp
+                                <tr>
+                                    <td class="text-muted small">{{ $i + 1 }}</td>
+                                    <td class="fw-semibold">{{ $prod->product_name }}</td>
+                                    <td class="text-end">{{ number_format($prod->total_quantity, 0) }}</td>
+                                    <td class="text-end">₲ {{ number_format($prod->total_revenue, 0, ',', '.') }}</td>
+                                    <td class="text-end fw-bold {{ $prod->total_profit >= 0 ? 'text-success' : 'text-danger' }}">
+                                        ₲ {{ number_format($prod->total_profit, 0, ',', '.') }}
+                                    </td>
+                                    <td class="text-end fw-bold">{{ $margin }}%</td>
+                                    <td>
+                                        <div class="progress" style="height:8px;border-radius:4px;">
+                                            <div class="progress-bar" style="width:{{ min(100, max(0, $margin)) }}%;background:{{ $barColor }};"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @else
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size:3rem;"></i>
+                            <p class="mt-2 mb-0">Sin datos</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ── GRÁFICO PRODUCTOS + VENDEDORES ── --}}
             <div class="row g-4 mb-4">
                 {{-- Gráfico top productos --}}
                 <div class="col-lg-6">
                     <div class="card chart-card h-100">
                         <div class="card-body p-4">
-                            <h5 class="section-title"><i class="bi bi-trophy me-2"></i>Top Productos</h5>
+                            <h5 class="section-title"><i class="bi bi-bar-chart-steps me-2"></i>Ingresos vs Ganancia</h5>
                             @if($topProducts->count() > 0)
                                 <canvas id="chartTopProducts" height="220"></canvas>
                             @else
@@ -289,19 +365,28 @@
             type: 'bar',
             data: {
                 labels: @json($chartProdLabels),
-                datasets: [{
-                    label: 'Ingresos',
-                    data: @json($chartProdRevenue),
-                    backgroundColor: COLORS,
-                    borderRadius: 5,
-                }]
+                datasets: [
+                    {
+                        label: 'Ingresos',
+                        data: @json($chartProdRevenue),
+                        backgroundColor: 'rgba(102,126,234,.8)',
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Ganancia',
+                        data: @json($chartProdProfit),
+                        backgroundColor: 'rgba(56,239,125,.8)',
+                        borderRadius: 4,
+                    }
+                ]
             },
             options: {
                 indexAxis: 'y',
                 responsive: true,
+                interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: false },
-                    tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.parsed.x) + '  (' + @json($chartProdQty)[ctx.dataIndex] + ' und.)' } }
+                    legend: { position: 'top' },
+                    tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.x) } }
                 },
                 scales: { x: { ticks: { callback: v => fmt(v) } } }
             }
