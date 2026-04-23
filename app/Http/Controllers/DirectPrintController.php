@@ -140,9 +140,6 @@ class DirectPrintController extends Controller
 
         $sub   = 'Subtotal:';   $subV  = 'Gs.' . number_format($sale->subtotal, 0);
         $lines[] = ['t' => $sub  . str_repeat(' ', max(1, 32 - strlen($sub)  - strlen($subV)))  . $subV,  'f' => 4];
-        $iva   = 'IVA (10%):';  $ivaV  = 'Gs.' . number_format($sale->tax_amount, 0);
-        $lines[] = ['t' => $iva  . str_repeat(' ', max(1, 32 - strlen($iva)  - strlen($ivaV)))  . $ivaV,  'f' => 4];
-
         $lines[] = ['t' => str_repeat('-', 32), 'f' => 4];
         $tot   = 'TOTAL:';      $totV  = 'Gs.' . number_format($sale->total_amount, 0);
         $lines[] = ['t' => $tot  . str_repeat(' ', max(1, 32 - strlen($tot)  - strlen($totV)))  . $totV,  'f' => 5];
@@ -961,10 +958,6 @@ PS;
             $subtotalAmount = "Gs. " . number_format($sale->subtotal, 0);
             $content .= $this->alignText($subtotalText, $subtotalAmount, $ticketWidth) . "\n";
             
-            $ivaText = "IVA (10%):";
-            $ivaAmount = "Gs. " . number_format($sale->tax_amount, 0);
-            $content .= $this->alignText($ivaText, $ivaAmount, $ticketWidth) . "\n\n";
-            
             // TOTAL en línea destacada
             $totalText = "TOTAL:";
             $totalAmount = "Gs. " . number_format($sale->total_amount, 0);
@@ -1056,7 +1049,6 @@ PS;
 
         $lines[] = str_repeat('-', $W);
         array_push($lines, ...$this->pad2colWrap('Subtotal:', 'Gs.' . number_format($sale->subtotal, 0), $W));
-        array_push($lines, ...$this->pad2colWrap('IVA (10%):', 'Gs.' . number_format($sale->tax_amount, 0), $W));
         $lines[] = str_repeat('-', $W);
         array_push($lines, ...$this->pad2colWrap('TOTAL:', 'Gs.' . number_format($sale->total_amount, 0), $W));
         $lines[] = str_repeat('=', $W);
