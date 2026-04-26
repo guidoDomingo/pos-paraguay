@@ -55,6 +55,7 @@ class PosTerminal extends Component
     public $showPriceSelectionModal = false;
     public $selectedProduct = null;
     public $availablePrices = [];
+    public int $modalQuantity = 1;
     public $lastSaleId = null;
     public $lastDocumentType = null;
     public $lastSaleNumber = null;
@@ -206,26 +207,24 @@ class PosTerminal extends Component
         $this->addToCartWithPrice($product, $selectedPrice);
     }
 
-    public function addToCartWithPrice($product, $priceInfo)
+    public function addToCartWithPrice($product, $priceInfo, int $quantity = 1)
     {
         $cartItemKey = collect($this->cart)->search(function ($item) use ($product, $priceInfo) {
             return $item['product_id'] == $product->id && $item['price_type'] == $priceInfo['type'];
         });
 
         if ($cartItemKey !== false) {
-            // Incrementar cantidad si ya existe con el mismo tipo de precio
-            $this->cart[$cartItemKey]['quantity']++;
-            $this->cart[$cartItemKey]['total_price'] = 
+            $this->cart[$cartItemKey]['quantity'] += $quantity;
+            $this->cart[$cartItemKey]['total_price'] =
                 $this->cart[$cartItemKey]['quantity'] * $this->cart[$cartItemKey]['unit_price'];
         } else {
-            // Agregar nuevo ítem
             $this->cart[] = [
                 'product_id' => $product->id,
                 'product_code' => $product->code,
                 'product_name' => $product->name,
-                'quantity' => 1,
+                'quantity' => $quantity,
                 'unit_price' => $priceInfo['value'],
-                'total_price' => $priceInfo['value'],
+                'total_price' => $priceInfo['value'] * $quantity,
                 'iva_type' => $product->iva_type,
                 'iva_rate' => $product->getIvaRate(),
                 'price_type' => $priceInfo['type'],
@@ -245,7 +244,7 @@ class PosTerminal extends Component
         }
 
         $selectedPrice = $this->availablePrices[$priceTypeIndex];
-        $this->addToCartWithPrice($this->selectedProduct, $selectedPrice);
+        $this->addToCartWithPrice($this->selectedProduct, $selectedPrice, max(1, (int) $this->modalQuantity));
     }
 
     public function closePriceSelectionModal()
@@ -253,6 +252,17 @@ class PosTerminal extends Component
         $this->showPriceSelectionModal = false;
         $this->selectedProduct = null;
         $this->availablePrices = [];
+        $this->modalQuantity = 1;
+    }
+
+    public function incrementModalQty()
+    {
+        $this->modalQuantity++;
+    }
+
+    public function decrementModalQty()
+    {
+        if ($this->modalQuantity > 1) $this->modalQuantity--;
     }
 
     public function updateQuantity($index, $quantity)

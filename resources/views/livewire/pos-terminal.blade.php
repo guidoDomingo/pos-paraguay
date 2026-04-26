@@ -474,6 +474,24 @@
                 </div>
             </div>
 
+            <!-- Cantidad -->
+            <div style="margin-bottom: 20px;">
+                <h6 style="margin-bottom: 10px; color: #333;">📦 Cantidad:</h6>
+                <div style="display: flex; align-items: center; gap: 10px; justify-content: center;">
+                    <button type="button"
+                        wire:click="decrementModalQty"
+                        style="background:#6c757d;color:white;border:none;border-radius:8px;width:42px;height:42px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+                    <input type="number"
+                        wire:model.live="modalQuantity"
+                        min="1"
+                        style="width:80px;height:42px;text-align:center;font-size:20px;font-weight:bold;border:2px solid #007bff;border-radius:8px;outline:none;"
+                        onclick="this.select()">
+                    <button type="button"
+                        wire:click="incrementModalQty"
+                        style="background:#007bff;color:white;border:none;border-radius:8px;width:42px;height:42px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+                </div>
+            </div>
+
             <!-- Opciones de Precios -->
             <div style="margin-bottom: 20px;">
                 <h6 style="margin-bottom: 15px; color: #333;">💰 Selecciona el precio a usar:</h6>
