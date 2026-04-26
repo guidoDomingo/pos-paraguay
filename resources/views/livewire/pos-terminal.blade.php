@@ -446,8 +446,8 @@
 
     <!-- Modal de Selección de Precios -->
     @if($showPriceSelectionModal && $selectedProduct)
-    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 99999; display: flex; align-items: center; justify-content: center;">
-        <div style="background: white; width: 90%; max-width: 500px; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 99999; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 16px 0;">
+        <div style="background: white; width: 90%; max-width: 500px; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin: auto; max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column;">
             
             <!-- Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #007bff; padding-bottom: 15px;">
