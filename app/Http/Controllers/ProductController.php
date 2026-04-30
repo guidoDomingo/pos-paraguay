@@ -17,16 +17,36 @@ class ProductController extends Controller
     {
         $this->imageService = $imageService;
     }
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::where('company_id', Auth::user()->company_id)
+        $query = Product::where('company_id', Auth::user()->company_id)
             ->with('category')
-            ->orderBy('name')
-            ->paginate(20);
-            
-        return view('products.index', compact('products'));
+            ->orderBy('name');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%")
+                  ->orWhere('barcode', 'like', "%{$search}%");
+            });
+        }
+
+        if ($categoryId = $request->input('category')) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($request->input('status') === 'active') {
+            $query->where('is_active', true);
+        } elseif ($request->input('status') === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $products   = $query->paginate(20)->withQueryString();
+        $categories = Category::where('company_id', Auth::user()->company_id)->get();
+
+        return view('products.index', compact('products', 'categories'));
     }
-    
+
     public function create()
     {
         $categories = Category::where('company_id', Auth::user()->company_id)->get();

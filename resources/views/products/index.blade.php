@@ -13,30 +13,46 @@
     <div class="py-4">
         <div class="container-fluid">
             <!-- Filtros y búsqueda -->
-            <div class="row mb-4">
-                <div class="col-md-6">
+            <form method="GET" action="{{ route('products.index') }}" class="row mb-4 g-2">
+                <div class="col-md-5">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Buscar productos..." id="searchProducts">
+                        <input type="text" class="form-control" name="search"
+                               placeholder="Buscar por nombre, código o barcode..."
+                               value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select" id="filterCategory">
+                    <select class="form-select" name="category">
                         <option value="">Todas las categorías</option>
-                        <!-- Aquí se cargarían las categorías -->
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="filterStatus">
+                <div class="col-md-2">
+                    <select class="form-select" name="status">
                         <option value="">Todos los estados</option>
-                        <option value="active">Activos</option>
-                        <option value="inactive">Inactivos</option>
+                        <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Activos</option>
+                        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactivos</option>
                     </select>
                 </div>
-            </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-search me-1"></i>Buscar
+                    </button>
+                    <a href="{{ route('products.index') }}" class="btn btn-outline-secondary" id="btn-limpiar"
+                       title="Limpiar filtros"
+                       style="{{ request()->hasAny(['search','category','status']) ? '' : 'display:none' }}">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </form>
 
             <!-- Tabla de productos -->
-            <div class="card shadow">
+            <div class="card shadow" id="products-results">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">
                         <i class="bi bi-list-ul me-2"></i>
@@ -302,26 +318,52 @@
                     imageModal.hide();
                 }
             });
-        });
-        
-        // Funcionalidad de búsqueda mejorada (opcional)
-        const searchInput = document.getElementById('searchProducts');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                const tableRows = document.querySelectorAll('tbody tr');
-                
-                tableRows.forEach(row => {
-                    const productName = row.children[2].textContent.toLowerCase();
-                    const productCode = row.children[1].textContent.toLowerCase();
-                    
-                    if (productName.includes(searchTerm) || productCode.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
+
+            // Búsqueda automática al escribir (desde 2 caracteres)
+            const searchInput = document.querySelector('input[name="search"]');
+            const filterForm  = searchInput ? searchInput.closest('form') : null;
+            let searchTimer;
+
+            if (searchInput && filterForm) {
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimer);
+                    const val = this.value.trim();
+                    if (val.length === 0 || val.length >= 2) {
+                        searchTimer = setTimeout(() => buscarProductos(), 350);
                     }
                 });
-            });
-        }
+
+                // Los selects también actualizan sin recargar
+                filterForm.querySelectorAll('select').forEach(sel => {
+                    sel.addEventListener('change', () => buscarProductos());
+                });
+            }
+
+            function buscarProductos() {
+                const params = new URLSearchParams(new FormData(filterForm));
+                const url    = filterForm.action + '?' + params.toString();
+
+                history.pushState({}, '', url);
+
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.text())
+                    .then(html => {
+                        const doc     = new DOMParser().parseFromString(html, 'text/html');
+                        const newCard = doc.getElementById('products-results');
+                        if (newCard) {
+                            document.getElementById('products-results').innerHTML = newCard.innerHTML;
+                        }
+                        // Mostrar/ocultar botón limpiar sin recargar
+                        actualizarBotonLimpiar(params);
+                    });
+            }
+
+            function actualizarBotonLimpiar(params) {
+                const tienesFiltros = params.get('search') || params.get('category') || params.get('status');
+                const btnLimpiar    = document.getElementById('btn-limpiar');
+                if (btnLimpiar) btnLimpiar.style.display = tienesFiltros ? '' : 'none';
+            }
+        });
+
     </script>
 </x-app-layout>
