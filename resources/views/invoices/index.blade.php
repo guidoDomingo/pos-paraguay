@@ -24,31 +24,43 @@
             @endif
 
             <!-- Filtro/búsqueda -->
-            <div class="row mb-4">
-                <div class="col-md-6">
+            <form method="GET" action="{{ route('invoices.index') }}" class="row mb-4 g-2" id="invoice-filter-form">
+                <div class="col-md-5">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Buscar por número, cliente, RUC..." id="searchInvoices">
+                        <input type="text" class="form-control" name="search"
+                               placeholder="Buscar por número, cliente, RUC..."
+                               value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select" id="filterCondition">
+                    <select class="form-select" name="condition">
                         <option value="">Todas las condiciones</option>
-                        <option value="CONTADO">Contado</option>
-                        <option value="CREDITO">Crédito</option>
+                        <option value="CONTADO" {{ request('condition') === 'CONTADO' ? 'selected' : '' }}>Contado</option>
+                        <option value="CREDITO" {{ request('condition') === 'CREDITO' ? 'selected' : '' }}>Crédito</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="filterElectronic">
+                <div class="col-md-2">
+                    <select class="form-select" name="electronic">
                         <option value="">Todos los tipos</option>
-                        <option value="electronic">Electrónica</option>
-                        <option value="normal">Normal</option>
+                        <option value="electronic" {{ request('electronic') === 'electronic' ? 'selected' : '' }}>Electrónica</option>
+                        <option value="normal"     {{ request('electronic') === 'normal'     ? 'selected' : '' }}>Normal</option>
                     </select>
                 </div>
-            </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-search me-1"></i>Buscar
+                    </button>
+                    <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary" id="btn-limpiar-inv2"
+                       title="Limpiar filtros"
+                       style="{{ request()->hasAny(['search','condition','electronic']) ? '' : 'display:none' }}">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </form>
 
             <!-- Tabla -->
-            <div class="card shadow">
+            <div class="card shadow" id="invoices-results">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">
                         <i class="bi bi-list-ul me-2"></i>
@@ -169,35 +181,39 @@
 
     @push('scripts')
     <script>
-        document.getElementById('searchInvoices')?.addEventListener('input', function(e) {
-            filterRows();
-        });
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterForm  = document.getElementById('invoice-filter-form');
+            const searchInput = filterForm.querySelector('input[name="search"]');
+            let searchTimer;
 
-        document.getElementById('filterCondition')?.addEventListener('change', function() {
-            filterRows();
-        });
-
-        document.getElementById('filterElectronic')?.addEventListener('change', function() {
-            filterRows();
-        });
-
-        function filterRows() {
-            const search = document.getElementById('searchInvoices').value.toLowerCase();
-            const condition = document.getElementById('filterCondition').value.toLowerCase();
-            const electronic = document.getElementById('filterElectronic').value;
-            const rows = document.querySelectorAll('tbody tr');
-
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                const matchSearch = !search || text.includes(search);
-                const matchCondition = !condition || text.includes(condition);
-                const matchElectronic = !electronic
-                    || (electronic === 'electronic' && row.querySelector('.badge.bg-info'))
-                    || (electronic === 'normal' && !row.querySelector('.badge.bg-info'));
-
-                row.style.display = matchSearch && matchCondition && matchElectronic ? '' : 'none';
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                const val = this.value.trim();
+                if (val.length === 0 || val.length >= 2) {
+                    searchTimer = setTimeout(() => buscarFacturas(), 350);
+                }
             });
-        }
+
+            filterForm.querySelectorAll('select').forEach(sel => {
+                sel.addEventListener('change', () => buscarFacturas());
+            });
+
+            function buscarFacturas() {
+                const params = new URLSearchParams(new FormData(filterForm));
+                const url    = filterForm.action + '?' + params.toString();
+                history.pushState({}, '', url);
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.text())
+                    .then(html => {
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const newCard = doc.getElementById('invoices-results');
+                        if (newCard) document.getElementById('invoices-results').innerHTML = newCard.innerHTML;
+                        const tienesFiltros = params.get('search') || params.get('condition') || params.get('electronic');
+                        const btn = document.getElementById('btn-limpiar-inv2');
+                        if (btn) btn.style.display = tienesFiltros ? '' : 'none';
+                    });
+            }
+        });
     </script>
     @endpush
 </x-app-layout>

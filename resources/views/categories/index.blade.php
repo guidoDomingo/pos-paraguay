@@ -13,24 +13,36 @@
     <div class="py-4">
         <div class="container-fluid">
             <!-- Filtros y búsqueda -->
-            <div class="row mb-4">
-                <div class="col-md-6">
+            <form method="GET" action="{{ route('categories.index') }}" class="row mb-4 g-2" id="categories-filter-form">
+                <div class="col-md-7">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Buscar categorías..." id="searchCategories">
+                        <input type="text" class="form-control" name="search"
+                               placeholder="Buscar categorías..."
+                               value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <select class="form-select" id="filterStatus">
+                <div class="col-md-3">
+                    <select class="form-select" name="status">
                         <option value="">Todas las categorías</option>
-                        <option value="active">Activas</option>
-                        <option value="inactive">Inactivas</option>
+                        <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Activas</option>
+                        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactivas</option>
                     </select>
                 </div>
-            </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-search me-1"></i>Buscar
+                    </button>
+                    <a href="{{ route('categories.index') }}" class="btn btn-outline-secondary" id="btn-limpiar-cats"
+                       title="Limpiar filtros"
+                       style="{{ request()->hasAny(['search','status']) ? '' : 'display:none' }}">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </form>
 
             <!-- Tabla de categorías -->
-            <div class="card shadow">
+            <div class="card shadow" id="categories-results">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">
                         <i class="bi bi-list-ul me-2"></i>
@@ -220,4 +232,42 @@
             </div>
         </div>
     @endif
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterForm  = document.getElementById('categories-filter-form');
+            const searchInput = filterForm.querySelector('input[name="search"]');
+            let searchTimer;
+
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                const val = this.value.trim();
+                if (val.length === 0 || val.length >= 2) {
+                    searchTimer = setTimeout(() => buscarCategorias(), 350);
+                }
+            });
+
+            filterForm.querySelectorAll('select').forEach(sel => {
+                sel.addEventListener('change', () => buscarCategorias());
+            });
+
+            function buscarCategorias() {
+                const params = new URLSearchParams(new FormData(filterForm));
+                const url    = filterForm.action + '?' + params.toString();
+                history.pushState({}, '', url);
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.text())
+                    .then(html => {
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const newCard = doc.getElementById('categories-results');
+                        if (newCard) document.getElementById('categories-results').innerHTML = newCard.innerHTML;
+                        const tienesFiltros = params.get('search') || params.get('status');
+                        const btn = document.getElementById('btn-limpiar-cats');
+                        if (btn) btn.style.display = tienesFiltros ? '' : 'none';
+                    });
+            }
+        });
+    </script>
+    @endpush
 </x-app-layout>

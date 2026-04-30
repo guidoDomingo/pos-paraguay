@@ -9,13 +9,32 @@ use Illuminate\Support\Facades\Auth;
 
 class InvoiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $invoices = Invoice::where('company_id', Auth::user()->company_id)
+        $query = Invoice::where('company_id', Auth::user()->company_id)
             ->with(['sale.user', 'fiscalStamp'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-            
+            ->orderBy('created_at', 'desc');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_ruc', 'like', "%{$search}%");
+            });
+        }
+
+        if ($condition = $request->input('condition')) {
+            $query->where('condition', $condition);
+        }
+
+        if ($request->input('electronic') === 'electronic') {
+            $query->where('is_electronic', true);
+        } elseif ($request->input('electronic') === 'normal') {
+            $query->where('is_electronic', false);
+        }
+
+        $invoices = $query->paginate(20)->withQueryString();
+
         return view('invoices.index', compact('invoices'));
     }
     

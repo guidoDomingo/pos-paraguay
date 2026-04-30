@@ -30,25 +30,37 @@
             @endif
 
             <!-- Filtros y búsqueda -->
-            <div class="row mb-4">
+            <form method="GET" action="{{ route('fiscal-stamps.index') }}" class="row mb-4 g-2" id="stamps-filter-form">
                 <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Buscar timbrados..." id="searchStamps">
+                        <input type="text" class="form-control" name="search"
+                               placeholder="Buscar por número de timbrado..."
+                               value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <select class="form-select" id="filterStatus">
+                <div class="col-md-4">
+                    <select class="form-select" name="status">
                         <option value="">Todos los timbrados</option>
-                        <option value="active">Activos</option>
-                        <option value="inactive">Inactivos</option>
-                        <option value="expired">Vencidos</option>
+                        <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Activos</option>
+                        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactivos</option>
+                        <option value="expired"  {{ request('status') === 'expired'  ? 'selected' : '' }}>Vencidos</option>
                     </select>
                 </div>
-            </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-search me-1"></i>Buscar
+                    </button>
+                    <a href="{{ route('fiscal-stamps.index') }}" class="btn btn-outline-secondary" id="btn-limpiar-stamps"
+                       title="Limpiar filtros"
+                       style="{{ request()->hasAny(['search','status']) ? '' : 'display:none' }}">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </form>
 
             <!-- Tabla de timbrados -->
-            <div class="card shadow">
+            <div class="card shadow" id="stamps-results">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">
                         <i class="bi bi-list-ul me-2"></i>
@@ -233,36 +245,38 @@
 
     @push('scripts')
     <script>
-        // Búsqueda de timbrados
-        document.getElementById('searchStamps')?.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        });
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterForm  = document.getElementById('stamps-filter-form');
+            const searchInput = filterForm.querySelector('input[name="search"]');
+            let searchTimer;
 
-        // Filtro por estado
-        document.getElementById('filterStatus')?.addEventListener('change', function(e) {
-            const filter = e.target.value;
-            const rows = document.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {
-                if (filter === '') {
-                    row.style.display = '';
-                } else if (filter === 'active') {
-                    const hasActive = row.querySelector('.badge.bg-success');
-                    row.style.display = hasActive ? '' : 'none';
-                } else if (filter === 'inactive') {
-                    const hasInactive = row.querySelector('.badge.bg-secondary');
-                    row.style.display = hasInactive ? '' : 'none';
-                } else if (filter === 'expired') {
-                    const hasExpired = row.querySelector('.badge.bg-danger');
-                    row.style.display = hasExpired ? '' : 'none';
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                const val = this.value.trim();
+                if (val.length === 0 || val.length >= 2) {
+                    searchTimer = setTimeout(() => buscarTimbrados(), 350);
                 }
             });
+
+            filterForm.querySelectorAll('select').forEach(sel => {
+                sel.addEventListener('change', () => buscarTimbrados());
+            });
+
+            function buscarTimbrados() {
+                const params = new URLSearchParams(new FormData(filterForm));
+                const url    = filterForm.action + '?' + params.toString();
+                history.pushState({}, '', url);
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.text())
+                    .then(html => {
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const newCard = doc.getElementById('stamps-results');
+                        if (newCard) document.getElementById('stamps-results').innerHTML = newCard.innerHTML;
+                        const tienesFiltros = params.get('search') || params.get('status');
+                        const btn = document.getElementById('btn-limpiar-stamps');
+                        if (btn) btn.style.display = tienesFiltros ? '' : 'none';
+                    });
+            }
         });
     </script>
     @endpush

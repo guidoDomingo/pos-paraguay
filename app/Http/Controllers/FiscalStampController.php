@@ -8,12 +8,27 @@ use Illuminate\Support\Facades\Auth;
 
 class FiscalStampController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $fiscalStamps = FiscalStamp::where('company_id', Auth::user()->company_id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-            
+        $query = FiscalStamp::where('company_id', Auth::user()->company_id)
+            ->orderBy('created_at', 'desc');
+
+        if ($search = $request->input('search')) {
+            $query->where('stamp_number', 'like', "%{$search}%");
+        }
+
+        if ($status = $request->input('status')) {
+            if ($status === 'active') {
+                $query->where('is_active', true)->where('valid_until', '>=', now());
+            } elseif ($status === 'inactive') {
+                $query->where('is_active', false);
+            } elseif ($status === 'expired') {
+                $query->where('valid_until', '<', now());
+            }
+        }
+
+        $fiscalStamps = $query->paginate(20)->withQueryString();
+
         return view('fiscal-stamps.index', compact('fiscalStamps'));
     }
     

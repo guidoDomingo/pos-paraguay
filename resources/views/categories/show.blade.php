@@ -68,13 +68,13 @@
                         <div class="card-header bg-success text-white">
                             <h5 class="mb-0">
                                 <i class="bi bi-box-seam me-2"></i>
-                                Productos en esta Categoría ({{ $category->products->count() }})
+                                Productos en esta Categoría ({{ $stats['total'] }})
                             </h5>
                         </div>
-                        <div class="card-body">
-                            @if($category->products->count() > 0)
+                        <div class="card-body p-0">
+                            @if($products->count() > 0)
                                 <div class="table-responsive">
-                                    <table class="table table-hover">
+                                    <table class="table table-hover mb-0">
                                         <thead class="table-light">
                                             <tr>
                                                 <th>Código</th>
@@ -86,7 +86,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($category->products as $product)
+                                            @foreach($products as $product)
                                                 <tr>
                                                     <td>
                                                         <code class="bg-light px-2 py-1 rounded">{{ $product->code }}</code>
@@ -133,6 +133,11 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                @if($products->hasPages())
+                                    <div class="card-footer">
+                                        {{ $products->links() }}
+                                    </div>
+                                @endif
                             @else
                                 <div class="text-center py-4">
                                     <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
@@ -160,42 +165,38 @@
                         <div class="card-body">
                             <div class="row text-center">
                                 <div class="col-12 mb-3">
-                                    <h2 class="display-4 text-primary mb-1">{{ $category->products->count() }}</h2>
+                                    <h2 class="display-4 text-primary mb-1">{{ $stats['total'] }}</h2>
                                     <p class="text-muted mb-0">Productos Total</p>
                                 </div>
                             </div>
-                            
-                            @if($category->products->count() > 0)
+
+                            @if($stats['total'] > 0)
                                 <hr>
                                 <div class="row text-center">
                                     <div class="col-6">
-                                        <h4 class="text-success mb-1">{{ $category->products->where('is_active', true)->count() }}</h4>
+                                        <h4 class="text-success mb-1">{{ $stats['activos'] }}</h4>
                                         <small class="text-muted">Activos</small>
                                     </div>
                                     <div class="col-6">
-                                        <h4 class="text-secondary mb-1">{{ $category->products->where('is_active', false)->count() }}</h4>
+                                        <h4 class="text-secondary mb-1">{{ $stats['inactivos'] }}</h4>
                                         <small class="text-muted">Inactivos</small>
                                     </div>
                                 </div>
-                                
-                                @if($category->products->where('track_stock', true)->count() > 0)
+
+                                @if($stats['con_stock'] > 0)
                                     <hr>
                                     <div class="row text-center">
                                         <div class="col-12">
-                                            <h4 class="text-info mb-1">{{ $category->products->where('track_stock', true)->sum('stock') }}</h4>
+                                            <h4 class="text-info mb-1">{{ $stats['stock_total'] }}</h4>
                                             <small class="text-muted">Unidades en Stock</small>
                                         </div>
                                     </div>
                                     <div class="row text-center mt-2">
                                         <div class="col-6">
-                                            <small class="text-success">
-                                                {{ $category->products->where('track_stock', true)->filter(function($p) { return $p->stock > $p->min_stock; })->count() }} OK
-                                            </small>
+                                            <small class="text-success">{{ $stats['stock_ok'] }} OK</small>
                                         </div>
                                         <div class="col-6">
-                                            <small class="text-danger">
-                                                {{ $category->products->where('track_stock', true)->filter(function($p) { return $p->stock <= $p->min_stock; })->count() }} Bajo
-                                            </small>
+                                            <small class="text-danger">{{ $stats['stock_bajo'] }} Bajo</small>
                                         </div>
                                     </div>
                                 @endif
@@ -221,13 +222,13 @@
                                     <i class="bi bi-plus-square me-2"></i>Agregar Producto
                                 </a>
                                 
-                                @if($category->products->count() > 0)
+                                @if($stats['total'] > 0)
                                     <a href="{{ route('products.index') }}?category={{ $category->id }}" class="btn btn-info">
                                         <i class="bi bi-filter me-2"></i>Ver Productos
                                     </a>
                                 @endif
-                                
-                                @if($category->products->count() == 0)
+
+                                @if($stats['total'] == 0)
                                     <form method="POST" action="{{ route('categories.destroy', $category) }}">
                                         @csrf
                                         @method('DELETE')
@@ -237,7 +238,8 @@
                                         </button>
                                     </form>
                                 @else
-                                    <button type="button" class="btn btn-outline-secondary w-100" disabled title="No se puede eliminar (tiene productos)">
+                                    <button type="button" class="btn btn-outline-secondary w-100" disabled
+                                            title="No se puede eliminar (tiene productos)">
                                         <i class="bi bi-lock me-2"></i>No se puede eliminar
                                     </button>
                                 @endif
