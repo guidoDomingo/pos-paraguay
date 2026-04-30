@@ -85,15 +85,17 @@
             </div>
 
             <!-- Filtros -->
-            <div class="row mb-4">
-                <div class="col-md-3">
+            <form method="GET" action="{{ route('inventory.index') }}" class="row mb-4 g-2" id="inventory-filter-form">
+                <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Buscar productos..." id="searchInput" value="{{ request('search') }}">
+                        <input type="text" class="form-control" name="search"
+                               placeholder="Buscar por nombre o código..."
+                               value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select" id="categoryFilter">
+                    <select class="form-select" name="category">
                         <option value="">Todas las categorías</option>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}" {{ request('category') == $category->id ? 'selected' : '' }}>
@@ -103,27 +105,27 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select" id="statusFilter">
+                    <select class="form-select" name="status">
                         <option value="">Todos los estados</option>
-                        <option value="in_stock" {{ request('status') == 'in_stock' ? 'selected' : '' }}>Con stock</option>
-                        <option value="low_stock" {{ request('status') == 'low_stock' ? 'selected' : '' }}>Stock bajo</option>
-                        <option value="out_of_stock" {{ request('status') == 'out_of_stock' ? 'selected' : '' }}>Sin stock</option>
+                        <option value="in_stock"     {{ request('status') === 'in_stock'     ? 'selected' : '' }}>Con stock</option>
+                        <option value="low_stock"    {{ request('status') === 'low_stock'    ? 'selected' : '' }}>Stock bajo</option>
+                        <option value="out_of_stock" {{ request('status') === 'out_of_stock' ? 'selected' : '' }}>Sin stock</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <div class="btn-group w-100">
-                        <button type="button" class="btn btn-outline-secondary" onclick="applyFilters()">
-                            <i class="bi bi-funnel"></i> Filtrar
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
-                            <i class="bi bi-x-circle"></i>
-                        </button>
-                    </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-search me-1"></i>Buscar
+                    </button>
+                    <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary" id="btn-limpiar-inv"
+                       title="Limpiar filtros"
+                       style="{{ request()->hasAny(['search','category','status']) ? '' : 'display:none' }}">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
                 </div>
-            </div>
+            </form>
 
             <!-- Tabla de productos -->
-            <div class="card shadow">
+            <div class="card shadow" id="inventory-results">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">
                         <i class="bi bi-list-ul me-2"></i>
@@ -209,7 +211,7 @@
                         
                         @if($products->hasPages())
                             <div class="card-footer">
-                                {{ $products->withQueryString()->links() }}
+                                {{ $products->links() }}
                             </div>
                         @endif
                     @else
@@ -243,27 +245,41 @@
     @endif
 
     <script>
-        function applyFilters() {
-            const search = document.getElementById('searchInput').value;
-            const category = document.getElementById('categoryFilter').value;
-            const status = document.getElementById('statusFilter').value;
-            
-            const url = new URL(window.location.href);
-            url.searchParams.set('search', search);
-            url.searchParams.set('category', category);
-            url.searchParams.set('status', status);
-            
-            window.location.href = url.toString();
-        }
-        
-        function clearFilters() {
-            window.location.href = '{{ route("inventory.index") }}';
-        }
-        
-        // Enter key support for search
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                applyFilters();
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterForm  = document.getElementById('inventory-filter-form');
+            const searchInput = filterForm.querySelector('input[name="search"]');
+            let searchTimer;
+
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                const val = this.value.trim();
+                if (val.length === 0 || val.length >= 2) {
+                    searchTimer = setTimeout(() => buscarInventario(), 350);
+                }
+            });
+
+            filterForm.querySelectorAll('select').forEach(sel => {
+                sel.addEventListener('change', () => buscarInventario());
+            });
+
+            function buscarInventario() {
+                const params = new URLSearchParams(new FormData(filterForm));
+                const url    = filterForm.action + '?' + params.toString();
+
+                history.pushState({}, '', url);
+
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.text())
+                    .then(html => {
+                        const doc     = new DOMParser().parseFromString(html, 'text/html');
+                        const newCard = doc.getElementById('inventory-results');
+                        if (newCard) {
+                            document.getElementById('inventory-results').innerHTML = newCard.innerHTML;
+                        }
+                        const tienesFiltros = params.get('search') || params.get('category') || params.get('status');
+                        const btnLimpiar    = document.getElementById('btn-limpiar-inv');
+                        if (btnLimpiar) btnLimpiar.style.display = tienesFiltros ? '' : 'none';
+                    });
             }
         });
     </script>

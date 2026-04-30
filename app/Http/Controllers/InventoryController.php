@@ -39,7 +39,8 @@ class InventoryController extends Controller
                 }
             })
             ->orderBy('name')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         $stats = [
             'total_products' => Product::where('company_id', $companyId)->where('track_stock', true)->count(),
