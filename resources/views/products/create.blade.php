@@ -24,6 +24,17 @@
                         <div class="card-body">
                             <form method="POST" action="{{ route('products.store') }}" enctype="multipart/form-data">
                                 @csrf
+
+                                @if ($errors->any())
+                                    <div class="alert alert-danger mb-4">
+                                        <h6 class="alert-heading mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>Por favor corregí los siguientes errores:</h6>
+                                        <ul class="mb-0 ps-3">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
                                 
                                 <!-- Información básica -->
                                 <div class="row">
@@ -65,8 +76,8 @@
                                     </div>
                                     <div class="col-md-4">
                                         <div class="mb-3">
-                                            <label for="category_id" class="form-label">Categoría</label>
-                                            <select class="form-select @error('category_id') is-invalid @enderror" id="category_id" name="category_id">
+                                            <label for="category_id" class="form-label">Categoría <span class="text-danger">*</span></label>
+                                            <select class="form-select @error('category_id') is-invalid @enderror" id="category_id" name="category_id" required>
                                                 <option value="">Seleccionar categoría</option>
                                                 @foreach($categories ?? [] as $category)
                                                     <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
@@ -165,12 +176,12 @@
                                         <div class="row g-3 mb-4">
                                             <div class="col-md-4">
                                                 <div class="mb-3">
-                                                    <label for="cost_price" class="form-label">Precio de Costo</label>
+                                                    <label for="cost_price" class="form-label">Precio de Costo <span class="text-danger">*</span></label>
                                                     <div class="input-group">
                                                         <span class="input-group-text">₲</span>
-                                                        <input type="number" class="form-control @error('cost_price') is-invalid @enderror" 
-                                                               id="cost_price" name="cost_price" value="{{ old('cost_price') }}" 
-                                                               min="0" step="0.01" placeholder="0.00">
+                                                        <input type="number" class="form-control @error('cost_price') is-invalid @enderror"
+                                                               id="cost_price" name="cost_price" value="{{ old('cost_price') }}"
+                                                               min="0" step="0.01" placeholder="0.00" required>
                                                     </div>
                                                     @error('cost_price')
                                                         <div class="invalid-feedback">{{ $message }}</div>

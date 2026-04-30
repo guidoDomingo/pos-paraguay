@@ -41,21 +41,42 @@ class ProductController extends Controller
             'barcode' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'sale_price' => 'required|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
+            'cost_price' => 'required|numeric|min:0',
             'tax_rate' => 'nullable|numeric|min:0|max:100',
             'track_stock' => 'nullable|boolean',
             'stock' => 'nullable|integer|min:0',
             'min_stock' => 'nullable|integer|min:0',
             'unit' => 'nullable|string|max:50',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => 'required|exists:categories,id',
             'is_active' => 'nullable|boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120', // 5MB máximo
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'check_price' => 'nullable|numeric|min:0',
             'check_price_description' => 'nullable|string|max:255',
             'credit_price' => 'nullable|numeric|min:0',
             'credit_price_description' => 'nullable|string|max:255',
             'special_price' => 'nullable|numeric|min:0',
             'special_price_description' => 'nullable|string|max:255',
+        ], [
+            'name.required' => 'El nombre del producto es obligatorio.',
+            'name.max' => 'El nombre no puede superar 255 caracteres.',
+            'code.required' => 'El código del producto es obligatorio.',
+            'code.max' => 'El código no puede superar 50 caracteres.',
+            'code.unique' => 'Ya existe un producto con ese código.',
+            'sale_price.required' => 'El precio de venta es obligatorio.',
+            'sale_price.numeric' => 'El precio de venta debe ser un número.',
+            'sale_price.min' => 'El precio de venta no puede ser negativo.',
+            'category_id.required' => 'Debe seleccionar una categoría.',
+            'category_id.exists' => 'La categoría seleccionada no es válida.',
+            'cost_price.required' => 'El precio de costo es obligatorio.',
+            'cost_price.numeric' => 'El precio de costo debe ser un número.',
+            'cost_price.min' => 'El precio de costo no puede ser negativo.',
+            'stock.integer' => 'El stock debe ser un número entero.',
+            'stock.min' => 'El stock no puede ser negativo.',
+            'min_stock.integer' => 'El stock mínimo debe ser un número entero.',
+            'min_stock.min' => 'El stock mínimo no puede ser negativo.',
+            'image.image' => 'El archivo debe ser una imagen.',
+            'image.mimes' => 'Solo se permiten imágenes JPG, PNG y WebP.',
+            'image.max' => 'La imagen no puede superar 5MB.',
         ]);
         
         $data = $request->all();
@@ -64,10 +85,15 @@ class ProductController extends Controller
         $data['is_active'] = $request->has('is_active');
         $data['hide_price'] = $request->has('hide_price');
 
-        // Set default values
+        // Normalizar campos numéricos NOT NULL para evitar constraint violations
+        $data['cost_price'] = is_numeric($data['cost_price'] ?? null) ? $data['cost_price'] : 0;
+
         if (!$data['track_stock']) {
-            $data['stock'] = null;
-            $data['min_stock'] = null;
+            $data['stock'] = 0;
+            $data['min_stock'] = 0;
+        } else {
+            $data['stock'] = is_numeric($data['stock'] ?? null) ? $data['stock'] : 0;
+            $data['min_stock'] = is_numeric($data['min_stock'] ?? null) ? $data['min_stock'] : 0;
         }
 
         // Procesar imagen si se subió una
@@ -105,15 +131,15 @@ class ProductController extends Controller
             'barcode' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'sale_price' => 'required|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
+            'cost_price' => 'required|numeric|min:0',
             'tax_rate' => 'nullable|numeric|min:0|max:100',
             'track_stock' => 'nullable|boolean',
             'stock' => 'nullable|integer|min:0',
             'min_stock' => 'nullable|integer|min:0',
             'unit' => 'nullable|string|max:50',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => 'required|exists:categories,id',
             'is_active' => 'nullable|boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120', // 5MB máximo
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'remove_image' => 'nullable|boolean',
             'check_price' => 'nullable|numeric|min:0',
             'check_price_description' => 'nullable|string|max:255',
@@ -121,16 +147,42 @@ class ProductController extends Controller
             'credit_price_description' => 'nullable|string|max:255',
             'special_price' => 'nullable|numeric|min:0',
             'special_price_description' => 'nullable|string|max:255',
+        ], [
+            'name.required' => 'El nombre del producto es obligatorio.',
+            'name.max' => 'El nombre no puede superar 255 caracteres.',
+            'code.required' => 'El código del producto es obligatorio.',
+            'code.max' => 'El código no puede superar 50 caracteres.',
+            'code.unique' => 'Ya existe un producto con ese código.',
+            'sale_price.required' => 'El precio de venta es obligatorio.',
+            'sale_price.numeric' => 'El precio de venta debe ser un número.',
+            'sale_price.min' => 'El precio de venta no puede ser negativo.',
+            'category_id.required' => 'Debe seleccionar una categoría.',
+            'category_id.exists' => 'La categoría seleccionada no es válida.',
+            'cost_price.required' => 'El precio de costo es obligatorio.',
+            'cost_price.numeric' => 'El precio de costo debe ser un número.',
+            'cost_price.min' => 'El precio de costo no puede ser negativo.',
+            'stock.integer' => 'El stock debe ser un número entero.',
+            'stock.min' => 'El stock no puede ser negativo.',
+            'min_stock.integer' => 'El stock mínimo debe ser un número entero.',
+            'min_stock.min' => 'El stock mínimo no puede ser negativo.',
+            'image.image' => 'El archivo debe ser una imagen.',
+            'image.mimes' => 'Solo se permiten imágenes JPG, PNG y WebP.',
+            'image.max' => 'La imagen no puede superar 5MB.',
         ]);
         
         $data = $request->all();
         $data['track_stock'] = $request->has('track_stock');
         $data['is_active'] = $request->has('is_active');
-        
-        // Set default values
+
+        // Normalizar campos numéricos NOT NULL para evitar constraint violations
+        $data['cost_price'] = is_numeric($data['cost_price'] ?? null) ? $data['cost_price'] : 0;
+
         if (!$data['track_stock']) {
-            $data['stock'] = null;
-            $data['min_stock'] = null;
+            $data['stock'] = 0;
+            $data['min_stock'] = 0;
+        } else {
+            $data['stock'] = is_numeric($data['stock'] ?? null) ? $data['stock'] : 0;
+            $data['min_stock'] = is_numeric($data['min_stock'] ?? null) ? $data['min_stock'] : 0;
         }
         
         // Manejar imagen
