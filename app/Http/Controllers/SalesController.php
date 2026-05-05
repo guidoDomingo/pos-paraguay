@@ -81,24 +81,25 @@ class SalesController extends Controller
         $endDate = $request->get('end_date', now()->format('Y-m-d'));
         $userId = $request->get('user_id');
         
-        // Query base para el período
+        // Query base para el período — excluye CANCELADAS para consistencia
         $baseQuery = Sale::where('company_id', $companyId)
+            ->where('status', '!=', 'CANCELLED')
             ->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(),
                 Carbon::parse($endDate)->endOfDay()
             ]);
-            
+
         if ($userId) {
             $baseQuery->where('user_id', $userId);
         }
-        
+
         // Estadísticas generales
         $totalSales = (clone $baseQuery)->sum('total_amount');
         $salesCount = (clone $baseQuery)->count();
         $averageSale = $salesCount > 0 ? $totalSales / $salesCount : 0;
         $itemsSold = (clone $baseQuery)->withSum('saleItems', 'quantity')->get()->sum('sale_items_sum_quantity');
 
-        // Rentabilidad (ganancia = precio venta - costo)
+        // Costo total: usa el mismo universo que totalSales (sin CANCELADAS)
         $profitQuery = DB::table('sale_items as si')
             ->join('sales as s', 'si.sale_id', '=', 's.id')
             ->join('products as p', 'si.product_id', '=', 'p.id')
@@ -110,8 +111,9 @@ class SalesController extends Controller
             ]);
         if ($userId) $profitQuery->where('s.user_id', $userId);
 
-        $totalCost   = (clone $profitQuery)->selectRaw('SUM(p.cost_price * si.quantity) as total')->value('total') ?? 0;
-        $totalProfit = (clone $profitQuery)->selectRaw('SUM((si.unit_price - p.cost_price) * si.quantity) as total')->value('total') ?? 0;
+        $totalCost = (clone $profitQuery)->selectRaw('SUM(p.cost_price * si.quantity) as total')->value('total') ?? 0;
+        // Ganancia real = ventas (con descuentos aplicados) − costo
+        $totalProfit  = $totalSales - $totalCost;
         $profitMargin = $totalSales > 0 ? round(($totalProfit / $totalSales) * 100, 1) : 0;
         
         // Ventas por día

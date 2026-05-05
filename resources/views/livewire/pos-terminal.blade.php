@@ -482,7 +482,7 @@
                         wire:click="decrementModalQty"
                         style="background:#6c757d;color:white;border:none;border-radius:8px;width:42px;height:42px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
                     <input type="number"
-                        wire:model.live="modalQuantity"
+                        wire:model.lazy="modalQuantity"
                         min="1"
                         style="width:80px;height:42px;text-align:center;font-size:20px;font-weight:bold;border:2px solid #007bff;border-radius:8px;outline:none;"
                         onclick="this.select()">
@@ -494,8 +494,12 @@
 
             <!-- Opciones de Precios -->
             <div style="margin-bottom: 20px;">
-                <h6 style="margin-bottom: 15px; color: #333;">💰 Selecciona el precio a usar:</h6>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
+                <h6 style="margin-bottom: 15px; color: #333;" wire:loading.class="d-none" wire:target="selectPrice">💰 Selecciona el precio a usar:</h6>
+                <h6 wire:loading wire:target="selectPrice" style="margin-bottom: 15px; color: #007bff; display: none;">
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span> Agregando al carrito...
+                </h6>
+                <div style="display: flex; flex-direction: column; gap: 10px;"
+                     wire:loading.class="pe-none opacity-50" wire:target="selectPrice">
                     @foreach($availablePrices as $index => $price)
                     <div role="button" tabindex="0"
                          wire:click="selectPrice({{ $index }})"
@@ -1428,6 +1432,40 @@
                 closeImageZoom();
             }
         });
+
+        // --- Persistencia del carrito en localStorage ---
+        (function() {
+            var cartKey = 'pos_cart_{{ auth()->id() }}';
+
+            window.addEventListener('livewire:initialized', function() {
+                // Restaurar carrito desde localStorage al cargar la página
+                try {
+                    var saved = localStorage.getItem(cartKey);
+                    if (saved) {
+                        var cart = JSON.parse(saved);
+                        if (Array.isArray(cart) && cart.length > 0) {
+                            var wireEl = document.querySelector('[wire\\:id]');
+                            if (wireEl) {
+                                Livewire.find(wireEl.getAttribute('wire:id')).call('restoreCart', cart);
+                            }
+                        }
+                    }
+                } catch(e) {}
+
+                // Guardar carrito en localStorage cuando Livewire lo actualiza
+                window.addEventListener('cart-updated', function(e) {
+                    try {
+                        var cart = (e.detail && e.detail.cart) ? e.detail.cart : (e.detail || []);
+                        localStorage.setItem(cartKey, JSON.stringify(cart));
+                    } catch(e2) {}
+                });
+
+                // Limpiar localStorage al completar venta o vaciar carrito manualmente
+                window.addEventListener('cart-cleared', function() {
+                    localStorage.removeItem(cartKey);
+                });
+            });
+        })();
     </script>
 
     <!-- Modal para zoom de imagen de producto -->

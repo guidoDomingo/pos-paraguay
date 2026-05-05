@@ -234,7 +234,29 @@ class PosTerminal extends Component
 
         $this->calculateTotals();
         $this->closePriceSelectionModal();
+        $this->dispatch('cart-updated', cart: $this->cart);
         session()->flash('success', 'Producto agregado al carrito con ' . $priceInfo['label']);
+    }
+
+    public function restoreCart(array $cart): void
+    {
+        if (empty($cart) || !empty($this->cart)) {
+            return;
+        }
+        $validCart = [];
+        foreach ($cart as $item) {
+            if (!isset($item['product_id'], $item['quantity'], $item['unit_price'])) {
+                continue;
+            }
+            $product = Product::find($item['product_id']);
+            if ($product && $product->is_active) {
+                $validCart[] = $item;
+            }
+        }
+        if (!empty($validCart)) {
+            $this->cart = $validCart;
+            $this->calculateTotals();
+        }
     }
 
     public function selectPrice($priceTypeIndex)
@@ -285,8 +307,9 @@ class PosTerminal extends Component
 
         $this->cart[$index]['quantity'] = $quantity;
         $this->cart[$index]['total_price'] = $quantity * $this->cart[$index]['unit_price'];
-        
+
         $this->calculateTotals();
+        $this->dispatch('cart-updated', cart: $this->cart);
     }
 
     // Método para actualizar desde la vista
@@ -303,12 +326,14 @@ class PosTerminal extends Component
         unset($this->cart[$index]);
         $this->cart = array_values($this->cart);
         $this->calculateTotals();
+        $this->dispatch('cart-updated', cart: $this->cart);
     }
 
     public function clearCart()
     {
         $this->cart = [];
         $this->calculateTotals();
+        $this->dispatch('cart-cleared');
     }
 
     public function calculateTotals()
@@ -594,6 +619,7 @@ class PosTerminal extends Component
             $this->reset(['cart', 'customer_name', 'customer_ruc', 'customer_address', 'notes', 'cash_received', 'document_type', 'send_electronic', 'electronic_status', 'electronic_error']);
             $this->document_type = 'ticket'; // Resetear a ticket por defecto
             $this->calculateTotals();
+            $this->dispatch('cart-cleared');
             $this->closePaymentModal();
 
         } catch (\Exception $e) {
