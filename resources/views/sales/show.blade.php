@@ -79,6 +79,14 @@
         </div>
 
         <!-- Items de la Venta -->
+        @php
+            $totalCost = $sale->saleItems->sum(function($item) {
+                $cost = $item->cost_price ?? optional($item->product)->cost_price ?? 0;
+                return $cost * $item->quantity;
+            });
+            $ganancia = $sale->total_amount - $totalCost;
+            $margen   = $sale->total_amount > 0 ? round(($ganancia / $sale->total_amount) * 100, 1) : 0;
+        @endphp
         <div class="col-12">
             <div class="card">
                 <div class="card-header bg-success text-white">
@@ -94,27 +102,32 @@
                                 <tr>
                                     <th>Producto</th>
                                     <th>Código</th>
-                                    <th class="text-end">Precio Unit.</th>
+                                    <th class="text-end">P. Costo</th>
+                                    <th class="text-end">P. Venta</th>
                                     <th class="text-end">Cantidad</th>
-                                    <th class="text-end">IVA</th>
-                                    <th class="text-end">Subtotal</th>
+                                    <th class="text-end">Total Costo</th>
+                                    <th class="text-end">Total Venta</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($sale->saleItems as $item)
+                                @php
+                                    $itemCost      = $item->cost_price ?? optional($item->product)->cost_price ?? 0;
+                                    $itemTotalCost = $itemCost * $item->quantity;
+                                    $itemGanancia  = $item->total_price - $itemTotalCost;
+                                @endphp
                                 <tr>
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <div>
-                                                <div class="fw-semibold">{{ $item->product_name }}</div>
-                                                @if($item->iva_type !== 'EXENTO')
-                                                    <small class="text-muted">{{ $item->iva_type }}</small>
-                                                @endif
-                                            </div>
-                                        </div>
+                                        <div class="fw-semibold">{{ $item->product_name }}</div>
+                                        @if($item->iva_type !== 'EXENTO')
+                                            <small class="text-muted">{{ $item->iva_type }}</small>
+                                        @endif
                                     </td>
                                     <td>
                                         <code class="small">{{ $item->product_code }}</code>
+                                    </td>
+                                    <td class="text-end text-muted">
+                                        ₲ {{ number_format($itemCost, 0, ',', '.') }}
                                     </td>
                                     <td class="text-end">
                                         <strong>₲ {{ number_format($item->unit_price, 0, ',', '.') }}</strong>
@@ -122,20 +135,21 @@
                                     <td class="text-end">
                                         <span class="badge bg-light text-dark">{{ number_format($item->quantity, 0) }}</span>
                                     </td>
-                                    <td class="text-end">
-                                        @if($item->iva_amount > 0)
-                                            <span class="text-success">₲ {{ number_format($item->iva_amount, 0, ',', '.') }}</span>
-                                        @else
-                                            <span class="text-muted">Exento</span>
-                                        @endif
+                                    <td class="text-end text-muted">
+                                        ₲ {{ number_format($itemTotalCost, 0, ',', '.') }}
                                     </td>
                                     <td class="text-end">
                                         <strong>₲ {{ number_format($item->total_price, 0, ',', '.') }}</strong>
+                                        @if($itemCost > 0)
+                                            <br><small class="{{ $itemGanancia >= 0 ? 'text-success' : 'text-danger' }}">
+                                                {{ $itemGanancia >= 0 ? '+' : '' }}₲ {{ number_format($itemGanancia, 0, ',', '.') }}
+                                            </small>
+                                        @endif
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-4">
+                                    <td colspan="7" class="text-center py-4">
                                         <div class="text-muted">
                                             <i class="bi bi-inbox display-6 d-block mb-2"></i>
                                             No hay items en esta venta
@@ -144,6 +158,13 @@
                                 </tr>
                                 @endforelse
                             </tbody>
+                            <tfoot class="table-light fw-bold">
+                                <tr>
+                                    <td colspan="5" class="text-end">Totales:</td>
+                                    <td class="text-end text-muted">₲ {{ number_format($totalCost, 0, ',', '.') }}</td>
+                                    <td class="text-end text-success">₲ {{ number_format($sale->total_amount, 0, ',', '.') }}</td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -175,8 +196,25 @@
                         <strong>₲ {{ number_format($sale->tax_amount, 0, ',', '.') }}</strong>
                     </div>
                     <div class="d-flex justify-content-between py-3 border-top border-2 mt-2">
-                        <span class="h5 mb-0">TOTAL:</span>
+                        <span class="h5 mb-0">TOTAL VENTA:</span>
                         <span class="h4 mb-0 text-success">₲ {{ number_format($sale->total_amount, 0, ',', '.') }}</span>
+                    </div>
+
+                    <!-- Rentabilidad -->
+                    <div class="border-top pt-3 mt-1">
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="text-muted">Total Costo:</span>
+                            <span class="text-muted">₲ {{ number_format($totalCost, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-2 border-top mt-1">
+                            <span class="fw-bold {{ $ganancia >= 0 ? 'text-success' : 'text-danger' }}">
+                                <i class="bi bi-graph-up-arrow me-1"></i>Ganancia:
+                            </span>
+                            <span class="fw-bold fs-5 {{ $ganancia >= 0 ? 'text-success' : 'text-danger' }}">
+                                ₲ {{ number_format($ganancia, 0, ',', '.') }}
+                                <small class="fs-6">({{ $margen }}%)</small>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
